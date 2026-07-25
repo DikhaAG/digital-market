@@ -6,13 +6,22 @@ import {
   Mail,
   Heart,
   ChevronRight,
+  ChevronDown,
   Globe,
   Accessibility,
+  Menu,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 // Data Navigasi Kategori (Row 2 Navbar)
 const categories = [
@@ -113,8 +122,132 @@ export default function BuyerLayout({
     <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
       {/* ================= FIXED TOP NAVBAR ================= */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        {/* Row 1: Logo, Search, Actions */}
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4 md:gap-8">
+        {/* ------------ MOBILE NAVBAR (Sesuai Gambar 1 & 2) ------------ */}
+        <div className="flex flex-col md:hidden">
+          {/* Header Bar Top (Hamburger + Centered Logo) */}
+          <div className="flex items-center justify-between px-4 h-14">
+            {/* Mobile Sidebar / Sheet Trigger */}
+            <Sheet>
+              <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-md -ml-2 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Menu</span>
+              </SheetTrigger>
+
+              {/* Mobile Sidebar Content (Sesuai Gambar 2) */}
+              <SheetContent
+                side="left"
+                className="w-[300px] sm:w-[350px] p-0 flex flex-col"
+              >
+                <SheetHeader className="p-6 pb-4 border-b border-border text-left">
+                  <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-14 w-14">
+                      <AvatarImage src="/avatar.png" alt="dikhaag" />
+                      <AvatarFallback className="bg-amber-700 text-amber-50 font-semibold text-lg">
+                        D
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-bold text-base text-foreground">
+                      dikhaag
+                    </span>
+                  </div>
+                </SheetHeader>
+
+                {/* Sidebar Navigation Items */}
+                <div className="flex-1 overflow-y-auto py-4 px-6 space-y-4 text-muted-foreground font-normal text-sm">
+                  <Link
+                    href="/"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/inbox"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Inbox
+                  </Link>
+                  <Link
+                    href="/post-brief"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Post a project brief
+                  </Link>
+                  <Link
+                    href="/briefs"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Briefs
+                  </Link>
+                  <Link
+                    href="/orders"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Manage Orders
+                  </Link>
+                  <Link
+                    href="/lists"
+                    className="block hover:text-foreground transition-colors"
+                  >
+                    Lists
+                  </Link>
+
+                  <div className="flex items-center justify-between cursor-pointer py-1 hover:text-foreground transition-colors">
+                    <span>Browse categories</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+
+                  <div className="flex items-center justify-between cursor-pointer py-1 hover:text-foreground transition-colors">
+                    <span>Explore</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+
+                  <div className="pt-4">
+                    <Link
+                      href="/profile"
+                      className="block font-bold text-foreground"
+                    >
+                      My Profile
+                    </Link>
+                  </div>
+
+                  <div className="pt-2">
+                    <Link
+                      href="/referral"
+                      className="block font-bold text-emerald-500 hover:underline"
+                    >
+                      Refer & Get up to $100
+                    </Link>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Logo Center */}
+            <Link
+              href="/"
+              className="flex items-center gap-0.5 text-2xl font-black tracking-tight text-foreground"
+            >
+              fiverr
+              <span className="text-emerald-500 text-3xl leading-none">.</span>
+            </Link>
+
+            {/* Dummy Box untuk Menjaga Alignment Center Logo */}
+            <div className="w-8" />
+          </div>
+
+          {/* Search Input Bar Mobile (Sesuai Gambar 1) */}
+          <div className="px-4 pb-3">
+            <Input
+              type="search"
+              placeholder="Find services"
+              className="w-full h-10 border-input bg-background rounded-md px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+        </div>
+
+        {/* ------------ DESKTOP NAVBAR (TetaP Sama) ------------ */}
+        <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4 md:gap-8">
           {/* Logo */}
           <Link
             href="/"
@@ -256,13 +389,9 @@ export default function BuyerLayout({
                 <button className="hover:text-foreground transition-colors">
                   $ USD
                 </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                >
+                <button className="h-7 w-7 text-muted-foreground hover:text-foreground">
                   <Accessibility className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </div>
           </div>
