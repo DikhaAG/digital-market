@@ -126,6 +126,17 @@ export default function BuyerLayout({
         <div className="flex flex-col md:hidden">
           {/* Header Bar Top (Hamburger + Centered Logo) */}
           <div className="flex items-center justify-between px-4 h-14">
+            {/* Dummy Box untuk Menjaga Alignment Center Logo */}
+            <div className="w-8" />
+            {/* Logo Center */}
+            <Link
+              href="/"
+              className="flex items-center gap-0.5 text-2xl font-black tracking-tight text-foreground"
+            >
+              fiverr
+              <span className="text-emerald-500 text-3xl leading-none">.</span>
+            </Link>
+
             {/* Mobile Sidebar / Sheet Trigger */}
             <Sheet>
               <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-md -ml-2 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
@@ -135,7 +146,7 @@ export default function BuyerLayout({
 
               {/* Mobile Sidebar Content (Sesuai Gambar 2) */}
               <SheetContent
-                side="left"
+                side="right"
                 className="w-[300px] sm:w-[350px] p-0 flex flex-col"
               >
                 <SheetHeader className="p-6 pb-4 border-b border-border text-left">
@@ -222,18 +233,6 @@ export default function BuyerLayout({
                 </div>
               </SheetContent>
             </Sheet>
-
-            {/* Logo Center */}
-            <Link
-              href="/"
-              className="flex items-center gap-0.5 text-2xl font-black tracking-tight text-foreground"
-            >
-              fiverr
-              <span className="text-emerald-500 text-3xl leading-none">.</span>
-            </Link>
-
-            {/* Dummy Box untuk Menjaga Alignment Center Logo */}
-            <div className="w-8" />
           </div>
 
           {/* Search Input Bar Mobile (Sesuai Gambar 1) */}
