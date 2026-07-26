@@ -43,9 +43,7 @@ export function GuestMobileViewNavbar() {
             <div>
               {/* Header: Logo */}
               <SheetHeader className="p-4 border-b border-border text-left">
-                <SheetTitle asChild>
-                  <BuyerNavbarLogo />
-                </SheetTitle>
+                <SheetTitle render={<BuyerNavbarLogo />}></SheetTitle>
               </SheetHeader>
 
               {/* Navigation Menu List */}
@@ -107,22 +105,24 @@ export function GuestMobileViewNavbar() {
             {/* Bottom Actions (Join Fiverr & Sign in) */}
             <div className="p-6 border-t border-border space-y-3 bg-background">
               <Button
-                asChild
+                nativeButton={false}
+                render={
+                  <Link href="/register" onClick={() => setOpen(false)}>
+                    Join Fiverr
+                  </Link>
+                }
                 className="w-full font-bold h-11 text-base rounded-md"
-              >
-                <Link href="/register" onClick={() => setOpen(false)}>
-                  Join Fiverr
-                </Link>
-              </Button>
+              ></Button>
               <Button
-                asChild
+                nativeButton={false}
+                render={
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    Sign in
+                  </Link>
+                }
                 variant="outline"
                 className="w-full font-bold h-11 text-base rounded-md"
-              >
-                <Link href="/login" onClick={() => setOpen(false)}>
-                  Sign in
-                </Link>
-              </Button>
+              ></Button>
             </div>
           </SheetContent>
         </Sheet>
@@ -139,9 +139,12 @@ export function GuestMobileViewNavbar() {
       <BuyerNavbarLogo />
 
       {/* Right Action: Join Button */}
-      <Button asChild size="sm" className="font-bold px-4 h-9 rounded-md">
-        <Link href="/register">Join</Link>
-      </Button>
+      <Button
+        render={<Link href="/register">Join</Link>}
+        nativeButton={false}
+        size="sm"
+        className="font-bold px-4 h-9 rounded-md"
+      ></Button>
     </div>
   );
 }

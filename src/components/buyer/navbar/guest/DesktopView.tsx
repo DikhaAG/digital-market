@@ -49,9 +49,12 @@ export function GuestDesktopViewNavbar() {
           Sign in
         </Link>
 
-        <Button asChild size="sm" className="font-bold px-5 h-9 rounded-md">
-          <Link href="/register">Join</Link>
-        </Button>
+        <Button
+          render={<Link href="/register">Join</Link>}
+          nativeButton={false}
+          size="sm"
+          className="font-bold px-5 h-9 rounded-md"
+        ></Button>
       </div>
     </div>
   );
