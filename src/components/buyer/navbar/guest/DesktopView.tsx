@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronDown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNavbarLogo } from "../Logo";
 
@@ -10,33 +9,11 @@ export function GuestDesktopViewNavbar() {
 
       {/* Nav Right Links & Actions */}
       <div className="flex items-center gap-6 text-sm font-bold text-foreground">
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:text-emerald-500 transition-colors"
-        >
-          Fiverr Pro <ChevronDown className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:text-emerald-500 transition-colors"
-        >
-          Explore <ChevronDown className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors"
-        >
-          <Globe className="h-4 w-4" />
-          <span>EN</span>
-        </button>
-
         <Link
           href="/become-seller"
           className="hover:text-emerald-500 transition-colors"
         >
-          Become a Seller
+          Menjadi Penjual
         </Link>
 
         {/* Divider */}
