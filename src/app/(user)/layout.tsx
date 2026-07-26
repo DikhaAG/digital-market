@@ -1,8 +1,8 @@
 import React from "react";
-import { BuyerNavbar } from "@/components/buyer/navbar/Navbar";
-import { BuyerFooter } from "@/components/buyer/footer/Footer";
+import { UserNavbar } from "@/components/user/navbar/Navbar";
+import { UserFooter } from "@/components/user/footer/Footer";
 
-export default function BuyerLayout({
+export default function UserLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -10,15 +10,15 @@ export default function BuyerLayout({
   return (
     /* 
       - flex-1: Mengisi sisa ruang kosong dari body RootLayout.
-      - flex flex-col: Memungkinkan <main className="flex-1"> mendorong BuyerFooter ke paling bawah (Sticky Footer).
+      - flex flex-col: Memungkinkan <main className="flex-1"> mendorong User ke paling bawah (Sticky Footer).
       - Tidak perlu min-h-screen, bg-background, atau font-sans lagi karena sudah ditangani RootLayout.
     */
     <div className="flex flex-col flex-1">
-      <BuyerNavbar />
+      <UserNavbar />
 
       <main className="flex-1">{children}</main>
 
-      <BuyerFooter />
+      <UserFooter />
     </div>
   );
 }

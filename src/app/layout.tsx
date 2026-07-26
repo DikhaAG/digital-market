@@ -34,7 +34,7 @@ export default function RootLayout({
     >
       {/*
         1. min-h-full & flex-col pada body memastikan tinggi aplikasi minimal 100% tinggi viewport.
-        2. bg-background & text-foreground dipasang di sini agar berlaku untuk seluruh halaman/layout (Auth, Buyer, Admin, 404, dll).
+        2. bg-background & text-foreground dipasang di sini agar berlaku untuk seluruh halaman/layout (Auth, User, Admin, 404, dll).
         3. font-sans dipasang di body agar otomatis diwariskan ke seluruh elemen anak.
       */}
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">

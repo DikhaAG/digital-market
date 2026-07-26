@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function BuyerNavbarLogo() {
+export function UserNavbarLogo() {
   return (
     <Link
       href="/"

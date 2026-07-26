@@ -1,5 +1,5 @@
 "use client";
-import { CATEGORIES } from "@/config/buyer/nav/categories";
+import { CATEGORIES } from "@/config/user/nav/categories";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 

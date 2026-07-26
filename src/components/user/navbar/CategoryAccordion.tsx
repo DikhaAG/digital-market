@@ -14,7 +14,7 @@ import {
   CATEGORIES,
   SUB_CATEGORIES,
   Category,
-} from "@/config/buyer/nav/categories";
+} from "@/config/user/nav/categories";
 
 interface CategoryAccordionProps {
   onLinkClick?: () => void;

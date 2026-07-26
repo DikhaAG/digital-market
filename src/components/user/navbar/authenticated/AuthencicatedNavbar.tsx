@@ -11,8 +11,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BuyerNavbarLogo } from "@/components/buyer/navbar/Logo";
-import { ACCOUNT_NAV_LINKS, MAIN_NAV_LINKS } from "@/config/buyer/nav/links";
+import { UserNavbarLogo } from "@/components/user/navbar/Logo";
+import { ACCOUNT_NAV_LINKS, MAIN_NAV_LINKS } from "@/config/user/nav/links";
 import { NavbarSearchBar } from "../NavbarSearchBar";
 import { UserAvatar } from "../UserAvatar";
 import { NavLinksGroup } from "../NavLinksGroup";
@@ -43,7 +43,7 @@ export function AuthenticatedNavbar({
     <div className="w-full">
       {/* ================= DESKTOP VIEW ================= */}
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4 md:gap-8">
-        <BuyerNavbarLogo />
+        <UserNavbarLogo />
 
         <div className="flex-1 max-w-2xl">
           <NavbarSearchBar variant="desktop" />
@@ -81,7 +81,7 @@ export function AuthenticatedNavbar({
       <div className="flex flex-col md:hidden">
         <div className="flex items-center justify-between px-4 h-14">
           <div className="w-10 h-10" aria-hidden="true" />
-          <BuyerNavbarLogo />
+          <UserNavbarLogo />
 
           {mounted ? (
             <Sheet open={open} onOpenChange={setOpen}>

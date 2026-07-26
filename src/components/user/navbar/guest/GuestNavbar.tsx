@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BuyerNavbarLogo } from "../Logo";
+import { UserNavbarLogo } from "../Logo";
 import { CategoryAccordion } from "../CategoryAccordion";
 
 export function GuestNavbar() {
@@ -31,7 +31,7 @@ export function GuestNavbar() {
     <div className="w-full">
       {/* ================= DESKTOP VIEW ================= */}
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4">
-        <BuyerNavbarLogo />
+        <UserNavbarLogo />
 
         {/* Nav Right Links & Actions */}
         <div className="flex items-center gap-6 text-sm font-bold text-foreground">
@@ -80,7 +80,7 @@ export function GuestNavbar() {
                 {/* Header Logo */}
                 <SheetHeader className="p-4 border-b border-border text-left">
                   <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
-                  <BuyerNavbarLogo />
+                  <UserNavbarLogo />
                 </SheetHeader>
 
                 {/* Navigation Menu List */}
@@ -125,7 +125,7 @@ export function GuestNavbar() {
         )}
 
         {/* Center Logo */}
-        <BuyerNavbarLogo />
+        <UserNavbarLogo />
 
         {/* Right Action: Join Button */}
         <Button
