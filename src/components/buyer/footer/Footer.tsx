@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Globe, Accessibility } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FOOTER_SECTIONS } from "@/config/buyer/footer-nav";
+import { FOOTER_SECTIONS } from "@/config/buyer/nav/footer-nav";
 
 export function BuyerFooter() {
   return (
