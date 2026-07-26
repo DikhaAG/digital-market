@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { BuyerDesktopViewNavbar } from "./DesktopView";
-import { BuyerMobileViewNavbar } from "./MobileView";
+
+// Import Views
+import { AuthenticatedDesktopViewNavbar } from "./authenticated/DesktopView";
+import { AuthenticatedMobileViewNavbar } from "./authenticated/MobileView";
+import { GuestDesktopViewNavbar } from "./guest/DesktopView";
+import { GuestMobileViewNavbar } from "./guest/MobileView";
 
 const CATEGORIES = [
   { name: "Trending 🔥", href: "/categories/trending" },
@@ -37,11 +41,25 @@ function CategoriesNav() {
   );
 }
 
-export function BuyerNavbar() {
+interface BuyerNavbarProps {
+  isAuthenticated?: boolean; // Dapat dihubungkan ke session/state auth Anda
+}
+
+export function BuyerNavbar({ isAuthenticated = false }: BuyerNavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <BuyerMobileViewNavbar />
-      <BuyerDesktopViewNavbar />
+      {isAuthenticated ? (
+        <>
+          <AuthenticatedMobileViewNavbar />
+          <AuthenticatedDesktopViewNavbar />
+        </>
+      ) : (
+        <>
+          <GuestMobileViewNavbar />
+          <GuestDesktopViewNavbar />
+        </>
+      )}
+
       <Separator />
       <CategoriesNav />
     </header>
