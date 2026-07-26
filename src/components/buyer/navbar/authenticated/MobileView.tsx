@@ -127,7 +127,7 @@ export function AuthenticatedMobileViewNavbar() {
       <div className="px-4 pb-3">
         <Input
           type="search"
-          placeholder="Find services"
+          placeholder="Temukan Layanan"
           className="w-full h-10 border-input bg-background rounded-md px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
         />
       </div>
