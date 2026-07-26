@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { BuyerNavbarLogo } from "../Logo";
+import { CategoryAccordion } from "../CategoryAccordion";
 
 export function GuestNavbar() {
   const [open, setOpen] = useState(false);
@@ -27,28 +28,21 @@ export function GuestNavbar() {
   const closeSheet = () => setOpen(false);
 
   return (
-    <header className="w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="w-full">
       {/* ================= DESKTOP VIEW ================= */}
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4">
         <BuyerNavbarLogo />
 
         {/* Nav Right Links & Actions */}
         <div className="flex items-center gap-6 text-sm font-bold text-foreground">
-          <Link
-            href="/become-seller"
-            className="hover:text-brand-hover transition-colors"
-          >
-            Menjadi Penjual
-          </Link>
-
           {/* Divider */}
           <div className="h-4 w-[1px] bg-border my-auto" />
 
           <Link
-            href="/login"
+            href="/signin"
             className="hover:text-brand-hover transition-colors"
           >
-            Sign in
+            Masuk
           </Link>
 
           <Button
@@ -91,15 +85,7 @@ export function GuestNavbar() {
 
                 {/* Navigation Menu List */}
                 <div className="p-6 space-y-5 font-semibold text-foreground text-base">
-                  <Link
-                    href="/categories"
-                    onClick={closeSheet}
-                    className="flex items-center justify-between py-1 hover:text-brand-hover transition-colors"
-                  >
-                    <span>Jelajahi Kategori</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-
+                  <CategoryAccordion onLinkClick={closeSheet} />
                   <Separator className="my-4" />
                 </div>
               </div>
@@ -149,6 +135,6 @@ export function GuestNavbar() {
           className="font-bold px-4 h-9 rounded-md"
         ></Button>
       </div>
-    </header>
+    </div>
   );
 }

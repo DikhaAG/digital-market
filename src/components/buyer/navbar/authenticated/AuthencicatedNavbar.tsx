@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, Heart, Menu, Search, Crown } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Bell, Heart, Menu, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
@@ -15,6 +13,10 @@ import {
 } from "@/components/ui/sheet";
 import { BuyerNavbarLogo } from "@/components/buyer/navbar/Logo";
 import { ACCOUNT_NAV_LINKS, MAIN_NAV_LINKS } from "@/config/buyer/nav/links";
+import { NavbarSearchBar } from "../NavbarSearchBar";
+import { UserAvatar } from "../UserAvatar";
+import { NavLinksGroup } from "../NavLinksGroup";
+import { CategoryAccordion } from "../CategoryAccordion";
 
 interface UserProfile {
   name: string;
@@ -31,13 +33,11 @@ export function AuthenticatedNavbar({
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Mencegah mismatch hydration saat render Sheet di Server vs Client
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const closeSheet = () => setOpen(false);
-  const initialLetter = user.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
     <div className="w-full">
@@ -45,24 +45,10 @@ export function AuthenticatedNavbar({
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4 md:gap-8">
         <BuyerNavbarLogo />
 
-        {/* Search Bar Desktop */}
         <div className="flex-1 max-w-2xl">
-          <div className="flex items-center w-full border border-input rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-ring">
-            <Input
-              type="search"
-              placeholder="What service are you looking for today?"
-              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none h-10 px-4 text-sm bg-transparent"
-            />
-            <Button
-              size="icon"
-              className="rounded-none h-10 w-12 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          <NavbarSearchBar variant="desktop" />
         </div>
 
-        {/* Actions & Profile Desktop */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
           <Button
             variant="ghost"
@@ -87,29 +73,16 @@ export function AuthenticatedNavbar({
             Orders
           </Link>
 
-          {/* User Avatar Desktop */}
-          <div className="relative">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={user.avatarUrl} alt={user.name} />
-              <AvatarFallback className="bg-muted text-muted-foreground font-semibold text-sm">
-                {initialLetter}
-              </AvatarFallback>
-            </Avatar>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-background" />
-          </div>
+          <UserAvatar user={user} size="sm" showBadge />
         </div>
       </div>
 
       {/* ================= MOBILE VIEW ================= */}
       <div className="flex flex-col md:hidden">
-        {/* Top Header Bar Mobile */}
         <div className="flex items-center justify-between px-4 h-14">
-          {/* Spacer penyeimbang layout logo */}
           <div className="w-10 h-10" aria-hidden="true" />
-
           <BuyerNavbarLogo />
 
-          {/* Sheet Drawer Navigation */}
           {mounted ? (
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger
@@ -123,28 +96,22 @@ export function AuthenticatedNavbar({
                     <span className="sr-only">Toggle Menu</span>
                   </Button>
                 }
-              ></SheetTrigger>
+              />
 
               <SheetContent
                 side="right"
                 className="w-[300px] sm:w-[350px] p-0 flex flex-col"
               >
-                <SheetHeader className="p-6 pb-4  text-left">
+                <SheetHeader className="p-6 pb-4 text-left border-b border-border">
                   <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-14 w-14">
-                      <AvatarImage src={user.avatarUrl} alt={user.name} />
-                      <AvatarFallback className="bg-muted text-muted-foreground font-semibold text-lg">
-                        {initialLetter}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar user={user} size="lg" />
                     <span className="font-bold text-base text-foreground">
                       {user.name}
                     </span>
                   </div>
                 </SheetHeader>
 
-                {/* Navigation Links */}
                 <div className="flex-1 overflow-y-auto p-3 text-muted-foreground font-normal text-sm space-y-1">
                   <Link
                     href="/start-selling"
@@ -153,51 +120,32 @@ export function AuthenticatedNavbar({
                   >
                     Menjadi Penjual <Crown className="h-5 w-5" />
                   </Link>
-                  {MAIN_NAV_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={closeSheet}
-                      className="block hover:text-foreground hover:bg-muted transition-colors p-3 rounded-md"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
 
-                  <button
-                    type="button"
-                    className="flex items-center justify-between w-full cursor-pointer hover:text-foreground hover:bg-muted p-3 rounded-md transition-colors text-left"
-                  >
-                    <span>Jelajahi Kategori</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
+                  <NavLinksGroup
+                    links={MAIN_NAV_LINKS}
+                    onLinkClick={closeSheet}
+                  />
 
-                  <div className="px-3 pt-3 pb-1 font-bold text-foreground">
-                    Umum
-                  </div>
+                  <CategoryAccordion onLinkClick={closeSheet} />
 
-                  {ACCOUNT_NAV_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={closeSheet}
-                      className="block hover:text-foreground hover:bg-muted transition-colors p-3 rounded-md"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  <NavLinksGroup
+                    title="Umum"
+                    links={ACCOUNT_NAV_LINKS}
+                    onLinkClick={closeSheet}
+                  />
                 </div>
 
-                {/* Bottom Actions */}
-                <div className="p-6  bg-background">
+                <div className="p-6 bg-background border-t border-border">
                   <Button
+                    nativeButton={false}
+                    render={
+                      <Link href="/signout" onClick={closeSheet}>
+                        Keluar
+                      </Link>
+                    }
                     variant="outline"
                     className="w-full font-bold h-11 text-base rounded-md"
-                  >
-                    <Link href="/signout" onClick={closeSheet}>
-                      Keluar
-                    </Link>
-                  </Button>
+                  />
                 </div>
               </SheetContent>
             </Sheet>
@@ -212,13 +160,8 @@ export function AuthenticatedNavbar({
           )}
         </div>
 
-        {/* Mobile Search Bar */}
         <div className="px-4 pb-3">
-          <Input
-            type="search"
-            placeholder="Temukan Layanan"
-            className="w-full h-10 border-input bg-background rounded-md px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
-          />
+          <NavbarSearchBar variant="mobile" />
         </div>
       </div>
     </div>
