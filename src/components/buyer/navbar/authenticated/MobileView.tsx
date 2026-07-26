@@ -95,6 +95,12 @@ export function AuthenticatedMobileViewNavbar({
                   <span>Jelajahi Kategori</span>
                   <ChevronDown className="h-4 w-4" />
                 </button>
+                <Link
+                  href={"/start-selling"}
+                  className="block text-emerald-500 hover:text-text-emerald-200 hover:bg-muted  transition-colors p-3 rounded-md"
+                >
+                  Menjadi Penjual
+                </Link>
 
                 <div className="px-3 pt-3 pb-1 font-bold text-foreground">
                   Umum
