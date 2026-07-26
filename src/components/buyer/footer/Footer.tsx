@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Globe, Accessibility, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FOOTER_SECTIONS } from "@/config/buyer/nav/footer-nav";
+import { FOOTER_SECTIONS } from "@/config/buyer/nav/footer";
 
 export function BuyerFooter() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
