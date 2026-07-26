@@ -13,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import { BuyerNavbarLogo } from "../Logo";
 
 const MOBILE_NAV_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "Inbox", href: "/inbox" },
-  { label: "Post a project brief", href: "/post-brief" },
-  { label: "Briefs", href: "/briefs" },
-  { label: "Manage Orders", href: "/orders" },
-  { label: "Lists", href: "/lists" },
+  { label: "Halaman Utama", href: "/" },
+  // { label: "Inbox", href: "/inbox" },
+  // { label: "Post a project brief", href: "/post-brief" },
+  // { label: "Briefs", href: "/briefs" },
+  { label: "Kelola Pesanan", href: "/orders" },
+  // { label: "Lists", href: "/lists" },
 ];
 
 export function AuthenticatedMobileViewNavbar() {
@@ -82,34 +82,10 @@ export function AuthenticatedMobileViewNavbar() {
                 ))}
 
                 <div className="flex items-center justify-between cursor-pointer py-1 hover:text-foreground transition-colors">
-                  <span>Browse categories</span>
+                  <span>Jelajahi Kategori</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>
-
-                <div className="flex items-center justify-between cursor-pointer py-1 hover:text-foreground transition-colors">
-                  <span>Explore</span>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-
-                <div className="pt-4">
-                  <Link
-                    href="/profile"
-                    onClick={() => setOpen(false)}
-                    className="block font-bold text-foreground"
-                  >
-                    My Profile
-                  </Link>
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    href="/referral"
-                    onClick={() => setOpen(false)}
-                    className="block font-bold text-emerald-500 hover:underline"
-                  >
-                    Refer & Get up to $100
-                  </Link>
-                </div>
+                <div className="pt-4 block font-bold text-foreground">Umum</div>
               </div>
             </SheetContent>
           </Sheet>
