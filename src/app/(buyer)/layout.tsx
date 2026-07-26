@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Globe, Accessibility } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { BuyerNavbar } from "@/components/buyer/Navbar";
+import { BuyerNavbar } from "@/components/buyer/navbar/Navbar";
 
 // Data Link Footer (5 Kolom)
 const footerSections = [
