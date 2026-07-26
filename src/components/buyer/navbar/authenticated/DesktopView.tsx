@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { BuyerNavbarLogo } from "@/components/buyer/navbar/Logo";
 import { Button } from "@/components/ui/button";
-import { Bell, Heart, Mail, Search } from "lucide-react";
+import { Bell, Heart, Search } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -35,14 +35,6 @@ export function AuthenticatedDesktopViewNavbar() {
           className="text-muted-foreground hover:text-foreground"
         >
           <Bell className="h-5 w-5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Mail className="h-5 w-5" />
         </Button>
 
         <Button
