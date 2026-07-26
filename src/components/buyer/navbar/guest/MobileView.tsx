@@ -53,52 +53,11 @@ export function GuestMobileViewNavbar() {
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-between py-1 hover:text-emerald-500 transition-colors"
                 >
-                  <span>Browse categories</span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-
-                <Link
-                  href="/explore"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between py-1 hover:text-emerald-500 transition-colors"
-                >
-                  <span>Explore</span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-
-                <Link
-                  href="/pro"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between py-1 hover:text-emerald-500 transition-colors"
-                >
-                  <span>Fiverr Pro</span>
+                  <span>Jelajahi Katogori</span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </Link>
 
                 <Separator className="my-4" />
-
-                {/* Preferences */}
-                <button
-                  type="button"
-                  className="flex items-center justify-between w-full py-1 text-left hover:text-emerald-500 transition-colors"
-                >
-                  <span className="flex items-center gap-3">
-                    <Globe className="h-5 w-5" />
-                    English
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </button>
-
-                <button
-                  type="button"
-                  className="flex items-center justify-between w-full py-1 text-left hover:text-emerald-500 transition-colors"
-                >
-                  <span className="flex items-center gap-3">
-                    <span className="font-bold text-lg px-0.5">$</span>
-                    USD
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </button>
               </div>
             </div>
 
@@ -117,7 +76,7 @@ export function GuestMobileViewNavbar() {
                 nativeButton={false}
                 render={
                   <Link href="/login" onClick={() => setOpen(false)}>
-                    Sign in
+                    Masuk
                   </Link>
                 }
                 variant="outline"
