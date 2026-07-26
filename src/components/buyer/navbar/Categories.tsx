@@ -10,12 +10,12 @@ export function CategoriesNav() {
         <Link
           key={index}
           href={category.href}
-          className="hover:text-foreground transition-colors py-1 shrink-0"
+          className="hover:text-foreground transition-colors py-2 shrink-0"
         >
           {category.name}
         </Link>
       ))}
-      <div className="sticky right-0 bg-gradient-to-l from-background via-background/90 to-transparent pl-6 pr-2 flex items-center shrink-0">
+      <div className="sticky right-0 bg-gradient-to-l pointer-events-none from-background via-background/90 to-transparent pl-6 pr-2 flex items-center shrink-0">
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </div>
     </div>

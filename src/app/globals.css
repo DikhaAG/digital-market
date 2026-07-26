@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand: oklch(0.696 0.17 162.48);
+  --color-brand-hover: oklch(0.696 0.17 162.48);
+  --color-brand-foreground: oklch(0.985 0 0);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -128,3 +131,4 @@
     @apply font-sans;
   }
 }
+

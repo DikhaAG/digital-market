@@ -27,7 +27,7 @@ export function GuestNavbar() {
   const closeSheet = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* ================= DESKTOP VIEW ================= */}
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4">
         <BuyerNavbarLogo />
@@ -36,7 +36,7 @@ export function GuestNavbar() {
         <div className="flex items-center gap-6 text-sm font-bold text-foreground">
           <Link
             href="/become-seller"
-            className="hover:text-emerald-500 transition-colors"
+            className="hover:text-brand-hover transition-colors"
           >
             Menjadi Penjual
           </Link>
@@ -46,7 +46,7 @@ export function GuestNavbar() {
 
           <Link
             href="/login"
-            className="hover:text-emerald-500 transition-colors"
+            className="hover:text-brand-hover transition-colors"
           >
             Sign in
           </Link>
@@ -94,7 +94,7 @@ export function GuestNavbar() {
                   <Link
                     href="/categories"
                     onClick={closeSheet}
-                    className="flex items-center justify-between py-1 hover:text-emerald-500 transition-colors"
+                    className="flex items-center justify-between py-1 hover:text-brand-hover transition-colors"
                   >
                     <span>Jelajahi Kategori</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />

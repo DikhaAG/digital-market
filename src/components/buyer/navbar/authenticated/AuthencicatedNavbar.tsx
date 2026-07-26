@@ -40,7 +40,7 @@ export function AuthenticatedNavbar({
   const initialLetter = user.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="w-full">
       {/* ================= DESKTOP VIEW ================= */}
       <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4 md:gap-8">
         <BuyerNavbarLogo />
@@ -95,7 +95,7 @@ export function AuthenticatedNavbar({
                 {initialLetter}
               </AvatarFallback>
             </Avatar>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-background" />
           </div>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function AuthenticatedNavbar({
                   <div className="flex items-center gap-3">
                     <Avatar className="h-14 w-14">
                       <AvatarImage src={user.avatarUrl} alt={user.name} />
-                      <AvatarFallback className="bg-amber-700 text-amber-50 font-semibold text-lg">
+                      <AvatarFallback className="bg-muted text-muted-foreground font-semibold text-lg">
                         {initialLetter}
                       </AvatarFallback>
                     </Avatar>
@@ -149,9 +149,9 @@ export function AuthenticatedNavbar({
                   <Link
                     href="/start-selling"
                     onClick={closeSheet}
-                    className="flex gap-x-2 items-center font-bold text-lg text-emerald-500 hover:text-emerald-600 hover:bg-muted transition-colors p-3 rounded-md"
+                    className="flex gap-x-2 items-center font-bold text-lg text-brand hover:text-brand-hover hover:bg-muted transition-colors p-3 rounded-md"
                   >
-                    Menjadi Penjual <Crown />
+                    Menjadi Penjual <Crown className="h-5 w-5" />
                   </Link>
                   {MAIN_NAV_LINKS.map((link) => (
                     <Link
@@ -221,6 +221,6 @@ export function AuthenticatedNavbar({
           />
         </div>
       </div>
-    </header>
+    </div>
   );
 }
