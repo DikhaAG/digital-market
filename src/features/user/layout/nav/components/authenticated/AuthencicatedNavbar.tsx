@@ -14,7 +14,7 @@ import {
 import {
   ACCOUNT_NAV_LINKS,
   MAIN_NAV_LINKS,
-} from "@/features/user/nav/data/links";
+} from "@/features/user/layout/nav/data/links";
 import { NavbarSearchBar } from "../NavbarSearchBar";
 import { UserAvatar } from "../UserAvatar";
 import { NavLinksGroup } from "../NavLinksGroup";

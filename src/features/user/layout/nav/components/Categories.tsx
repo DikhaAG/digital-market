@@ -1,5 +1,5 @@
 "use client";
-import { CATEGORIES } from "@/features/user/nav/data/categories";
+import { CATEGORIES } from "@/features/user/layout/nav/data/categories";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 

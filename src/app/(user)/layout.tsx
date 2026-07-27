@@ -1,6 +1,6 @@
+import { UserFooter } from "@/features/user/layout/footer/components/Footer";
+import { UserNavbar } from "@/features/user/layout/nav/components/Navbar";
 import React from "react";
-import { UserNavbar } from "./_components/navbar/Navbar";
-import { UserFooter } from "./_components/footer/Footer";
 
 export default function UserLayout({
   children,
