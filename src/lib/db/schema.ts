@@ -134,7 +134,7 @@ export const gigs = pgTable(
   "gigs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    sellerId: uuid("seller_id")
+    sellerId: text("seller_id")
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),
     categoryId: uuid("category_id")
