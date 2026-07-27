@@ -94,7 +94,7 @@ export function UserFooter() {
           {/* Logo & Copyright */}
           <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center md:text-left">
             <span className="font-black text-2xl md:text-xl tracking-tight text-foreground">
-              fiverr<span className="text-emerald-500">.</span>
+              fiverr<span className="text-brand">.</span>
             </span>
             <span>© Fiverr International Ltd. 2026</span>
           </div>

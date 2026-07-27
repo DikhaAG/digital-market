@@ -7,7 +7,7 @@ export function UserNavbarLogo() {
       className="flex items-center gap-0.5 text-2xl font-black tracking-tight text-foreground shrink-0"
     >
       fiverr
-      <span className="text-emerald-500 text-3xl leading-none">.</span>
+      <span className="text-brand text-3xl leading-none">.</span>
     </Link>
   );
 }
