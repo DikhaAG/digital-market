@@ -11,12 +11,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { UserNavbarLogo } from "@/components/user/navbar/Logo";
 import { ACCOUNT_NAV_LINKS, MAIN_NAV_LINKS } from "@/config/user/nav/links";
 import { NavbarSearchBar } from "../NavbarSearchBar";
 import { UserAvatar } from "../UserAvatar";
 import { NavLinksGroup } from "../NavLinksGroup";
 import { CategoryAccordion } from "../CategoryAccordion";
+import { UserNavbarLogo } from "../Logo";
 
 interface UserProfile {
   name: string;
