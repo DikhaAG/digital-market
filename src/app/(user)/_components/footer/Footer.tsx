@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Globe, Accessibility, ChevronDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FOOTER_SECTIONS } from "@/features/user/nav/data/footer";
+import { FOOTER_SECTIONS } from "@/features/user/components/nav/data/footer";
 
 export function UserFooter() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
