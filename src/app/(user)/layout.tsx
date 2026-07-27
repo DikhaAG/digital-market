@@ -16,7 +16,7 @@ export default function UserLayout({
     <div className="flex flex-col flex-1">
       <UserNavbar />
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 px-4 py-6">{children}</main>
 
       <UserFooter />
     </div>
