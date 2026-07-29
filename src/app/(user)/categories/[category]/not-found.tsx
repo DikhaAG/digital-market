@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   FileQuestion,
   Home,
@@ -15,22 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { CATEGORIES } from "@/features/user/layout/nav/data/categories";
 
 export default function CategoryNotFound() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-
   // Mengambil 6 kategori aktif pertama sebagai rekomendasi opsi pengganti
   const activeCategories = CATEGORIES.slice(0, 6);
-
-  const handleSearch = (e: FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      const slug = searchQuery
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-");
-      router.push(`/search?q=${slug}`);
-    }
-  };
 
   return (
     <div className="w-full min-h-[75vh] flex flex-col items-center justify-center space-y-8 py-12 px-4 text-center">
@@ -65,27 +49,6 @@ export default function CategoryNotFound() {
           removed, or the link was typed incorrectly.
         </p>
       </div>
-
-      {/* ================= 3. DIRECT RECOVERY SEARCH BAR ================= */}
-      <form
-        onSubmit={handleSearch}
-        className="relative flex items-center max-w-md w-full shadow-sm"
-      >
-        <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search for services or keywords..."
-          className="w-full rounded-xl border border-input bg-card pl-10 pr-24 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-all"
-        />
-        <button
-          type="submit"
-          className="absolute right-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground hover:bg-brand/90 transition-all active:scale-95"
-        >
-          Search
-        </button>
-      </form>
 
       {/* ================= 4. PRIMARY ACTION BUTTONS ================= */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
