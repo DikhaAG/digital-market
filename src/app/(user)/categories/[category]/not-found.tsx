@@ -59,14 +59,6 @@ export default function CategoryNotFound() {
           <Home className="h-4 w-4" />
           Back to Home
         </Link>
-
-        <Link
-          href="/categories"
-          className="inline-flex items-center gap-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground px-5 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95"
-        >
-          <Compass className="h-4 w-4 text-muted-foreground" />
-          Explore All Categories
-        </Link>
       </div>
 
       {/* ================= 5. SUGGESTED ACTIVE CATEGORIES ================= */}
