@@ -12,11 +12,14 @@ export interface PopularKeyword {
   icon: LucideIcon;
 }
 
+// Tipe untuk sub-item (bisa berupa string biasa atau object dengan badge isNew)
+export type SubCategoryItem = string | { name: string; isNew?: boolean };
+
 export interface ExploreGridItem {
   title: string;
-  desc: string;
-  bgGradient: string;
-  items: string[];
+  desc?: string;
+  image?: string;
+  items: SubCategoryItem[];
 }
 
 export const POPULAR_KEYWORDS: PopularKeyword[] = [
@@ -30,13 +33,28 @@ export const POPULAR_KEYWORDS: PopularKeyword[] = [
 
 export const EXPLORE_GRID_DATA: ExploreGridItem[] = [
   {
+    title: "Support & Cybersecurity",
+    desc: "IT Support, Cloud & Security Services",
+    image:
+      "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600&auto=format&fit=crop",
+    items: [
+      "Support & IT",
+      "Cloud Computing",
+      { name: "DevOps Engineering", isNew: true },
+      "Cybersecurity",
+      "Development for Streamers",
+      "Convert Files",
+    ],
+  },
+  {
     title: "Websites",
     desc: "Custom Code, WordPress, Shopify",
-    bgGradient: "from-emerald-950 to-emerald-800",
+    image:
+      "https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=600&auto=format&fit=crop",
     items: [
       "Website Development",
       "Website Maintenance",
-      "WordPress",
+      { name: "WordPress", isNew: true },
       "Shopify",
       "Custom Websites",
     ],
@@ -44,7 +62,8 @@ export const EXPLORE_GRID_DATA: ExploreGridItem[] = [
   {
     title: "Application Development",
     desc: "Web Apps, SaaS & Portals",
-    bgGradient: "from-teal-950 to-teal-800",
+    image:
+      "https://images.unsplash.com/photo-1551650975-87deedd944c3?q=80&w=600&auto=format&fit=crop",
     items: [
       "Web Applications",
       "Desktop Applications",
@@ -53,45 +72,13 @@ export const EXPLORE_GRID_DATA: ExploreGridItem[] = [
     ],
   },
   {
-    title: "Software Development",
-    desc: "Architecture & System Design",
-    bgGradient: "from-slate-900 to-slate-800",
-    items: [
-      "Software Architecture",
-      "API Integration",
-      "Database Design",
-      "Scripting & Automation",
-    ],
-  },
-  {
-    title: "Mobile Apps",
-    desc: "iOS, Android & Cross-Platform",
-    bgGradient: "from-rose-950 to-rose-800",
-    items: [
-      "Mobile App Development",
-      "Cross-platform Apps",
-      "Android App Dev",
-      "iOS App Dev",
-    ],
-  },
-  {
-    title: "DevOps & Cloud",
-    desc: "Infrastructure & Security",
-    bgGradient: "from-indigo-950 to-indigo-800",
-    items: [
-      "Cloud Computing",
-      "DevOps Engineering",
-      "Cybersecurity",
-      "Database Administration",
-    ],
-  },
-  {
     title: "AI Services",
     desc: "Agents, Models & Integration",
-    bgGradient: "from-purple-950 to-purple-800",
+    image:
+      "https://images.unsplash.com/photo-1677442136019-21780efad99a?q=80&w=600&auto=format&fit=crop",
     items: [
       "AI Applications",
-      "AI Agents & Automation",
+      { name: "AI Agents & Automation", isNew: true },
       "Prompt Engineering",
       "Machine Learning",
     ],
