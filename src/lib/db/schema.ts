@@ -1,6 +1,7 @@
 import { defineRelations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -9,7 +10,6 @@ import {
   timestamp,
   uuid,
   varchar,
-  index,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -86,7 +86,6 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-// CATEGORIES
 export const categories = pgTable(
   "categories",
   {
@@ -101,7 +100,6 @@ export const categories = pgTable(
   ],
 );
 
-// ATTRIBUTES
 export const attributes = pgTable(
   "attributes",
   {
@@ -115,7 +113,6 @@ export const attributes = pgTable(
   (table) => [index("attributes_category_idx").on(table.categoryId)],
 );
 
-// ATTRIBUTE OPTIONS
 export const attributeOptions = pgTable(
   "attribute_options",
   {
@@ -129,7 +126,6 @@ export const attributeOptions = pgTable(
   (table) => [index("attribute_options_attr_idx").on(table.attributeId)],
 );
 
-// GIGS
 export const gigs = pgTable(
   "gigs",
   {
@@ -142,6 +138,7 @@ export const gigs = pgTable(
       .notNull(),
     title: text("title").notNull(),
     slug: text("slug").notNull().unique(),
+    about: text("about"), //  [DITAMBAHKAN] Deskripsi mendalam "About This Gig"
     coverImage: text("cover_image"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -151,7 +148,6 @@ export const gigs = pgTable(
   ],
 );
 
-// GIG ATTRIBUTE OPTIONS (Junction Table M:N)
 export const gigAttributeOptions = pgTable(
   "gig_attribute_options",
   {
@@ -169,12 +165,34 @@ export const gigAttributeOptions = pgTable(
   ],
 );
 
-// GIG PACKAGES
+// Enum tipe fitur checklist (apakah centang true/false, angka, atau teks)
+export const packageFeatureTypeEnum = pgEnum("package_feature_type", [
+  "boolean", // Untuk centang (✓) / silang (✗)
+  "text", // Untuk teks kustom
+  "number", // Untuk angka (misal: jumlah konsep = 2)
+]);
+
+// Master item baris komparasi berdasarkan kategori
+// Contoh: Kategori 'Logo Design' punya baris: "Logo transparency", "Vector file", "3D mockup"
+export const packageFeatures = pgTable(
+  "package_features",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    categoryId: uuid("category_id")
+      .references(() => categories.id, { onDelete: "cascade" })
+      .notNull(),
+    name: varchar("name", { length: 255 }).notNull(), // e.g., "Vector file", "Printable file"
+    type: packageFeatureTypeEnum("type").default("boolean").notNull(),
+  },
+  (table) => [index("package_features_category_idx").on(table.categoryId)],
+);
+
 export const packageTypeEnum = pgEnum("package_type", [
   "basic",
   "standard",
   "premium",
 ]);
+
 export const gigPackages = pgTable(
   "gig_packages",
   {
@@ -183,8 +201,8 @@ export const gigPackages = pgTable(
       .references(() => gigs.id, { onDelete: "cascade" })
       .notNull(),
     packageType: packageTypeEnum("package_type").notNull(),
-    title: varchar("title", { length: 255 }).notNull(),
-    description: text("description"),
+    title: varchar("title", { length: 255 }).notNull(), // e.g. "STARTUP", "STANDARD", "PREMIUM"
+    description: text("description"), // Ringkasan singkat paket
     price: integer("price").notNull(),
     deliveryTimeDays: integer("delivery_time_days").notNull(),
     revisions: integer("revisions").notNull(),
@@ -192,7 +210,25 @@ export const gigPackages = pgTable(
   (table) => [index("gig_packages_gig_idx").on(table.gigId)],
 );
 
-// RQBv2: Menggabungkan seluruh definisi relasi dalam satu 'defineRelations'
+// Junction table yang menyimpan nilai/status checklist tiap paket
+export const gigPackageFeatureValues = pgTable(
+  "gig_package_feature_values",
+  {
+    gigPackageId: uuid("gig_package_id")
+      .references(() => gigPackages.id, { onDelete: "cascade" })
+      .notNull(),
+    packageFeatureId: uuid("package_feature_id")
+      .references(() => packageFeatures.id, { onDelete: "cascade" })
+      .notNull(),
+    isIncluded: boolean("is_included").default(false), // true = ✓, false = ✗
+    value: text("value"), // Digunakan jika tipe feature adalah 'number' atau 'text' (e.g., "3")
+  },
+  (table) => [
+    primaryKey({ columns: [table.gigPackageId, table.packageFeatureId] }),
+    index("pkg_feat_val_pkg_idx").on(table.gigPackageId),
+    index("pkg_feat_val_feat_idx").on(table.packageFeatureId),
+  ],
+);
 export const relations = defineRelations(
   {
     user,
@@ -204,7 +240,9 @@ export const relations = defineRelations(
     attributeOptions,
     gigs,
     gigAttributeOptions,
+    packageFeatures,
     gigPackages,
+    gigPackageFeatureValues,
   },
   (r) => ({
     user: {
@@ -224,7 +262,6 @@ export const relations = defineRelations(
         to: r.user.id,
       }),
     },
-    // Relasi Categories (Hierarki Self-Referencing)
     categories: {
       parent: r.one.categories({
         from: r.categories.parentId,
@@ -235,10 +272,9 @@ export const relations = defineRelations(
         alias: "categoryTree",
       }),
       attributes: r.many.attributes(),
+      packageFeatures: r.many.packageFeatures(),
       gigs: r.many.gigs(),
     },
-
-    // Relasi Attributes
     attributes: {
       category: r.one.categories({
         from: r.attributes.categoryId,
@@ -246,14 +282,11 @@ export const relations = defineRelations(
       }),
       options: r.many.attributeOptions(),
     },
-
-    // Relasi Attribute Options
     attributeOptions: {
       attribute: r.one.attributes({
         from: r.attributeOptions.attributeId,
         to: r.attributes.id,
       }),
-      // Akses Many-to-Many langsung ke Gigs lewat junction table
       gigs: r.many.gigs({
         from: r.attributeOptions.id.through(
           r.gigAttributeOptions.attributeOptionId,
@@ -262,8 +295,6 @@ export const relations = defineRelations(
       }),
       gigAttributes: r.many.gigAttributeOptions(),
     },
-
-    // Relasi Gigs
     gigs: {
       seller: r.one.user({
         from: r.gigs.sellerId,
@@ -274,7 +305,6 @@ export const relations = defineRelations(
         to: r.categories.id,
       }),
       packages: r.many.gigPackages(),
-      // Akses Many-to-Many langsung ke Attribute Options lewat junction table
       options: r.many.attributeOptions({
         from: r.gigs.id.through(r.gigAttributeOptions.gigId),
         to: r.attributeOptions.id.through(
@@ -283,8 +313,6 @@ export const relations = defineRelations(
       }),
       gigAttributes: r.many.gigAttributeOptions(),
     },
-
-    // Relasi Junction Table GigAttributeOptions
     gigAttributeOptions: {
       gig: r.one.gigs({
         from: r.gigAttributeOptions.gigId,
@@ -295,12 +323,35 @@ export const relations = defineRelations(
         to: r.attributeOptions.id,
       }),
     },
-
-    // Relasi GigPackages
+    packageFeatures: {
+      category: r.one.categories({
+        from: r.packageFeatures.categoryId,
+        to: r.categories.id,
+      }),
+      featureValues: r.many.gigPackageFeatureValues(),
+    },
     gigPackages: {
       gig: r.one.gigs({
         from: r.gigPackages.gigId,
         to: r.gigs.id,
+      }),
+      featureValues: r.many.gigPackageFeatureValues(),
+      // Akses langsung Many-to-Many ke master feature
+      features: r.many.packageFeatures({
+        from: r.gigPackages.id.through(r.gigPackageFeatureValues.gigPackageId),
+        to: r.packageFeatures.id.through(
+          r.gigPackageFeatureValues.packageFeatureId,
+        ),
+      }),
+    },
+    gigPackageFeatureValues: {
+      gigPackage: r.one.gigPackages({
+        from: r.gigPackageFeatureValues.gigPackageId,
+        to: r.gigPackages.id,
+      }),
+      feature: r.one.packageFeatures({
+        from: r.gigPackageFeatureValues.packageFeatureId,
+        to: r.packageFeatures.id,
       }),
     },
   }),
