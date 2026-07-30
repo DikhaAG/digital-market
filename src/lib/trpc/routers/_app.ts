@@ -1,4 +1,4 @@
-import { router } from "../server";
+import { router } from "../trpc";
 import { categoryRouter } from "./category";
 import { gigRouter } from "./gig";
 
