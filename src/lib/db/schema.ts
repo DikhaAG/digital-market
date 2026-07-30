@@ -93,6 +93,9 @@ export const categories = pgTable(
     parentId: uuid("parent_id"),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull().unique(),
+
+    icon: text("icon"), // Menyimpan nama icon Lucide (misal "code", "palette") atau URL SVG
+    image: text("image"), // Menyimpan URL banner/thumbnail kategori dari CDN
   },
   (table) => [
     index("categories_parent_idx").on(table.parentId),
