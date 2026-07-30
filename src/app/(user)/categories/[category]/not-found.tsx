@@ -52,6 +52,7 @@ export default function CategoryNotFound() {
 
       {/* ================= 3. PRIMARY ACTION BUTTONS ================= */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+        {/* Base UI Render Prop Pattern */}
         <Button
           nativeButton={false}
           render={
@@ -62,7 +63,7 @@ export default function CategoryNotFound() {
           }
           size="lg"
           className="rounded-xl gap-2 font-semibold shadow-md"
-        ></Button>
+        />
       </div>
 
       {/* ================= 4. SUGGESTED ACTIVE CATEGORIES ================= */}
@@ -91,7 +92,7 @@ export default function CategoryNotFound() {
                     </Link>
                   }
                   className="rounded-full hover:border-primary hover:text-primary transition-all gap-1.5"
-                ></Button>
+                />
               ))}
         </div>
       </div>
