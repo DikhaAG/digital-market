@@ -5,6 +5,39 @@ import { publicProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 
 export const gigRouter = router({
+  getBySlug: publicProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ input }) => {
+      const gig = await db.query.gigs.findFirst({
+        where: {
+          slug: input.slug,
+        },
+        with: {
+          seller: true,
+          category: {
+            with: {
+              parent: true,
+            },
+          },
+          packages: {
+            with: {
+              featureValues: {
+                with: {
+                  feature: true,
+                },
+              },
+            },
+          },
+          options: {
+            with: {
+              attribute: true,
+            },
+          },
+        },
+      });
+
+      return gig ?? null;
+    }),
   search: publicProcedure
     .input(
       z.object({
@@ -12,8 +45,8 @@ export const gigRouter = router({
         categoryId: z.uuid().optional(),
         minPrice: z.number().min(0).optional(),
         maxPrice: z.number().min(0).optional(),
-        page: z.number().int().min(1).default(1), // ✅ Validasi batas aman
-        limit: z.number().int().min(1).max(100).default(12), // ✅ Mencegah DoS
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(12),
       }),
     )
     .query(async ({ input }) => {
@@ -52,8 +85,8 @@ export const gigRouter = router({
       const havingClause =
         havingConditions.length > 0 ? and(...havingConditions) : undefined;
 
-      // 3. Base Query sebagai Subquery (Memastikan filter items & total 100% konsisten)
-      const filteredGigsQuery = db
+      // 3. Query Items Langsung (Presisi Type Inference Drizzle)
+      const itemsQuery = db
         .select({
           id: gigs.id,
           title: gigs.title,
@@ -70,7 +103,8 @@ export const gigRouter = router({
             name: categories.name,
             slug: categories.slug,
           },
-          startingPrice: sql<number>`MIN(${gigPackages.price})`.mapWith(Number),
+          startingPrice:
+            sql<number>`COALESCE(MIN(${gigPackages.price}), 0)`.mapWith(Number),
         })
         .from(gigs)
         .innerJoin(user, eq(gigs.sellerId, user.id))
@@ -79,18 +113,25 @@ export const gigRouter = router({
         .where(whereClause)
         .groupBy(gigs.id, user.id, categories.id)
         .having(havingClause)
-        .as("filtered_gigs");
+        .orderBy(desc(gigs.createdAt))
+        .limit(limit)
+        .offset(offset);
 
-      // 4. Eksekusi Paralel (Items & Total Count) untuk Performa Maksimal
+      // 4. Subquery khusus menghitung Total Rows terfilter
+      const countSubquery = db
+        .select({ id: gigs.id })
+        .from(gigs)
+        .innerJoin(categories, eq(gigs.categoryId, categories.id))
+        .leftJoin(gigPackages, eq(gigPackages.gigId, gigs.id))
+        .where(whereClause)
+        .groupBy(gigs.id, categories.id)
+        .having(havingClause)
+        .as("count_subquery");
+
+      // 5. Eksekusi Paralel
       const [items, totalResult] = await Promise.all([
-        db
-          .select()
-          .from(filteredGigsQuery)
-          .orderBy(desc(filteredGigsQuery.createdAt))
-          .limit(limit)
-          .offset(offset),
-
-        db.select({ total: count() }).from(filteredGigsQuery), // ✅ FIXED: Menghitung total dari subquery yang sama
+        itemsQuery,
+        db.select({ total: count() }).from(countSubquery),
       ]);
 
       const total = Number(totalResult[0]?.total ?? 0);
