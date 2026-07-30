@@ -16,22 +16,23 @@ export function HeroSection() {
     e.preventDefault();
     const query = searchQuery.trim();
     if (query) {
-      // Best Practice: gunakan encodeURIComponent agar karakter khusus/spasi aman di URL query string
       router.push(`/search?q=${encodeURIComponent(query)}`);
     }
   };
 
   return (
-    <section className="relative w-full min-h-[420px] sm:min-h-[480px] lg:min-h-[520px] rounded-3xl overflow-hidden bg-gradient-to-br from-brand/20 via-card to-background border border-brand/20 p-6 sm:p-10 lg:p-14 shadow-xl flex flex-col justify-center">
-      <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-brand/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-brand/10 blur-2xl pointer-events-none" />
+    <section className="relative w-full min-h-[420px] sm:min-h-[480px] lg:min-h-[520px] rounded-3xl overflow-hidden bg-gradient-to-br from-primary/10 via-card to-background border border-primary/15 p-6 sm:p-10 lg:p-14 shadow-xl flex flex-col justify-center">
+      {/* Glow Effects menggunakan Token Primary & Accent */}
+      <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
 
       <div className="relative z-10 max-w-3xl space-y-6">
+        {/* Badge menggunakan Primary Soft Token */}
         <Badge
           variant="outline"
-          className="border-brand/30 bg-brand/10 text-brand backdrop-blur-md px-3.5 py-1 text-xs font-semibold gap-1.5 rounded-full inline-flex"
+          className="border-primary/25 bg-primary/10 text-primary backdrop-blur-md px-3.5 py-1 text-xs font-semibold gap-1.5 rounded-full inline-flex"
         >
-          <Sparkles className="h-3.5 w-3.5 text-brand" />
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
           Pasar Layanan & Produk Digital
         </Badge>
 
@@ -45,6 +46,7 @@ export function HeroSection() {
           mempercepat proyek Anda.
         </p>
 
+        {/* Form Pencarian */}
         <form
           onSubmit={handleSearch}
           className="relative flex items-center w-full max-w-2xl pt-2"
@@ -56,11 +58,11 @@ export function HeroSection() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari layanan atau produk digital apapun..."
-              className="w-full bg-card/90 backdrop-blur border-border pl-12 pr-28 py-6 text-sm sm:text-base rounded-2xl shadow-lg focus-visible:ring-brand focus-visible:border-brand"
+              className="w-full bg-card/90 backdrop-blur border-border pl-12 pr-28 py-6 text-sm sm:text-base rounded-2xl shadow-lg focus-visible:ring-ring focus-visible:border-primary"
             />
             <Button
               type="submit"
-              className="absolute right-2 bg-brand text-brand-foreground hover:bg-brand/90 font-semibold px-5 py-5 rounded-xl transition-all active:scale-95 shadow-md"
+              className="absolute right-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-5 py-5 rounded-xl transition-all active:scale-95 shadow-md"
             >
               Cari
             </Button>
