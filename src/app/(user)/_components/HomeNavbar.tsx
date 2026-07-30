@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bell, Heart, Menu, Crown } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,13 +11,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  ACCOUNT_NAV_LINKS,
-  MAIN_NAV_LINKS,
-} from "@/features/user/layout/nav/data/links";
+
 import { BrandLogo } from "@/components/BrandLogo";
 import { SearchBar } from "./SearchBar";
-import { LinksGroup } from "./LinksGroup";
 import { CategoryAccordion } from "./CategoryAccordion";
 
 export function HomeNavbar() {
@@ -39,7 +35,17 @@ export function HomeNavbar() {
           <SearchBar variant="desktop" />
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4 shrink-0"></div>
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/order" onClick={closeSheet}>
+                Cek Pesanan
+              </Link>
+            }
+            className="w-full font-bold h-11 text-base rounded-md"
+          ></Button>
+        </div>
       </div>
 
       {/* ================= MOBILE VIEW ================= */}
