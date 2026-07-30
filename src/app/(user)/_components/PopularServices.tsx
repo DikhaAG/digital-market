@@ -27,7 +27,7 @@ export async function PopularServices() {
           id="popular-services-heading"
           className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
         >
-          Popular services
+          Layanan Populer
         </h2>
       </div>
 
