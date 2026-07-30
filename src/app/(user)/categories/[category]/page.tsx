@@ -1,15 +1,9 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-
-import { CATEGORIES } from "@/features/user/layout/nav/data/categories";
-import {
-  POPULAR_KEYWORDS,
-  EXPLORE_GRID_DATA,
-} from "@/features/user/category/data/category";
-
-import { CategoryHero } from "@/features/user/category/components/hero";
-import { PopularKeywords } from "@/features/user/category/components/popular-keywords";
-import { ExploreGrid } from "@/features/user/category/components/explore-grid";
+import { cache } from "react";
+import { db } from "@/lib/db";
+import { CategoryHero } from "./_components/hero";
+import { ExploreGrid } from "./_components/explore-grid";
 
 interface PageProps {
   params: Promise<{
@@ -17,11 +11,35 @@ interface PageProps {
   }>;
 }
 
+/**
+  React cache() memastikan query ke database hanya dieksekusi 1 kali 
+  meskipun dipanggil di generateMetadata & CategoryPage bersamaan.
+ */
+const getCategoryBySlug = cache(async (slug: string) => {
+  return await db.query.categories.findFirst({
+    where: {
+      AND: [
+        { slug },
+        {
+          parentId: {
+            isNull: true,
+          },
+        },
+      ],
+    },
+    with: {
+      subcategories: {
+        orderBy: (sub, { asc }) => [asc(sub.name)],
+      },
+    },
+  });
+});
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { category: categorySlug } = await params;
-  const category = CATEGORIES.find((c) => c.id === categorySlug);
+  const category = await getCategoryBySlug(categorySlug);
 
   if (!category) return { title: "Category Not Found" };
 
@@ -33,8 +51,7 @@ export async function generateMetadata({
 
 export default async function CategoryPage({ params }: PageProps) {
   const { category: categorySlug } = await params;
-
-  const category = CATEGORIES.find((c) => c.id === categorySlug);
+  const category = await getCategoryBySlug(categorySlug);
 
   if (!category) {
     notFound();
@@ -43,11 +60,10 @@ export default async function CategoryPage({ params }: PageProps) {
   return (
     <div className="w-full space-y-12 pb-16">
       <CategoryHero categoryName={category.name} />
-      <PopularKeywords categoryName={category.name} items={POPULAR_KEYWORDS} />
       <ExploreGrid
         categoryName={category.name}
-        categorySlug={categorySlug}
-        gridData={EXPLORE_GRID_DATA}
+        categorySlug={category.slug}
+        subcategories={category.subcategories ?? []}
       />
     </div>
   );

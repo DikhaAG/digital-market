@@ -3,17 +3,63 @@ import { HomeNavbar } from "./_components/HomeNavbar";
 import { Separator } from "@/components/ui/separator";
 import { UserFooter } from "./_components/Footer";
 import { CategoryNav } from "./_components/CategoryNav";
-export default function UserLayout({
+import { db } from "@/lib/db";
+
+export interface FooterLink {
+  label: string;
+  href: string;
+}
+
+export interface FooterSection {
+  title: string;
+  links: FooterLink[];
+}
+
+export default async function UserLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // 1. Fetch kategori utama langsung dari DB menggunakan sintaks native Drizzle
+  const dbCategories = await db.query.categories.findMany({
+    where: {
+      parentId: {
+        isNull: true,
+      },
+    },
+    orderBy: (categories, { asc }) => [asc(categories.name)],
+  });
+
+  // 2. Format kategori DB ke struktur link footer
+  const categoryLinks: FooterLink[] = dbCategories.map((cat) => ({
+    label: cat.name,
+    href: `/categories/${cat.slug}`,
+  }));
+
+  // 3. Gabungkan dengan seksi footer statis
+  const footerSections: FooterSection[] = [
+    {
+      title: "Categories",
+      links: categoryLinks,
+    },
+    {
+      title: "Company",
+      links: [
+        { label: "About Fiverr", href: "/about" },
+        { label: "Help Center", href: "/help" },
+        { label: "Terms of Service", href: "/terms" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Partnerships", href: "/partnerships" },
+        { label: "Creator Network", href: "/creator-network" },
+        { label: "Affiliates", href: "/affiliates" },
+        { label: "Invite a Friend", href: "/referral" },
+        { label: "Press & News", href: "/press" },
+        { label: "Investor Relations", href: "/investors" },
+      ],
+    },
+  ];
+
   return (
-    /* 
-      - flex-1: Mengisi sisa ruang kosong dari body RootLayout.
-      - flex flex-col: Memungkinkan <main className="flex-1"> mendorong User ke paling bawah (Sticky Footer).
-      - Tidak perlu min-h-screen, bg-background, atau font-sans lagi karena sudah ditangani RootLayout.
-    */
     <div className="flex flex-col flex-1">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <HomeNavbar />
@@ -21,8 +67,7 @@ export default function UserLayout({
         <CategoryNav />
       </header>
       <main className="flex-1 px-4 py-6">{children}</main>
-
-      <UserFooter />
+      <UserFooter sections={footerSections} />
     </div>
   );
 }

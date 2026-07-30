@@ -1,95 +1,70 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
-import { ExploreGridItem } from "../_data/category";
+import { ArrowRight, Layers } from "lucide-react";
+
+interface Subcategory {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface ExploreGridProps {
   categoryName: string;
   categorySlug: string;
-  gridData: ExploreGridItem[];
+  subcategories: Subcategory[];
 }
 
 export function ExploreGrid({
   categoryName,
   categorySlug,
-  gridData,
+  subcategories,
 }: ExploreGridProps) {
   return (
     <section className="space-y-8">
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Jelajahi {categoryName}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Cari layanan berdasarkan sub kategori untuk menemukan tepat yang
-            anda butuhkan
+          <p className="text-sm text-muted-foreground mt-1">
+            Cari layanan berdasarkan sub-kategori untuk menemukan spesialisasi
+            yang Anda butuhkan
           </p>
         </div>
       </div>
 
-      {/* Grid Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {gridData.map((card, idx) => (
-          <div key={idx} className="group flex flex-col space-y-4">
-            {/* 1. Header Image Banner (Presisi Referensi Gambar) */}
-            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-muted shadow-sm transition-shadow duration-300 group-hover:shadow-md">
-              {card.image ? (
-                <Image
-                  src={card.image}
-                  alt={card.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-xs">
-                  No Image
+      {/* Dynamic Subcategories Grid */}
+      {subcategories.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {subcategories.map((sub) => (
+            <Link
+              key={sub.id}
+              href={`/categories/${categorySlug}/${sub.slug}`}
+              className="group flex flex-col justify-between p-6 rounded-2xl border border-border bg-card hover:bg-muted/50 hover:border-foreground/20 shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <div className="space-y-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center transition-transform group-hover:scale-105">
+                  <Layers className="h-5 w-5" />
                 </div>
-              )}
-            </div>
+                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                  {sub.name}
+                </h3>
+              </div>
 
-            {/* 2. Card Title */}
-            <h3 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight px-1">
-              {card.title}
-            </h3>
-
-            {/* 3. Sub-links List */}
-            <ul className="space-y-1.5" role="list">
-              {card.items.map((item, itemIdx) => {
-                const itemName = typeof item === "string" ? item : item.name;
-                const isNew = typeof item === "object" && item.isNew;
-                const subSlug = itemName
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]+/g, "-");
-
-                return (
-                  <li key={itemIdx}>
-                    <Link
-                      href={`/categories/${categorySlug}/${subSlug}`}
-                      className="group/item flex items-center justify-between rounded-xl px-3.5 py-2.5 text-base sm:text-lg font-medium text-foreground/80 hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-all"
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <span className="truncate">{itemName}</span>
-                        {/* Pink Tag Badge NEW */}
-                        {isNew && (
-                          <span className="rounded-full border border-pink-500/40 bg-pink-500/10 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-pink-600 dark:bg-pink-500/20 dark:text-pink-400 shrink-0">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Panah Kanan (Tampil Saat Hover/Active) */}
-                      <ArrowRight className="h-5 w-5 text-foreground opacity-0 -translate-x-2 transition-all duration-200 group-hover/item:opacity-100 group-hover/item:translate-x-0 shrink-0" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-border/50 text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                <span>Lihat Layanan</span>
+                <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-muted/30">
+          <p className="text-muted-foreground text-sm">
+            Belum ada sub-kategori yang tersedia untuk {categoryName}.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { publicProcedure, router } from "../trpc";
+import * as z from "zod";
 
 export const categoryRouter = router({
   /**
@@ -19,4 +20,27 @@ export const categoryRouter = router({
 
     return data;
   }),
+  getBySlug: publicProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ input }) => {
+      const category = await db.query.categories.findFirst({
+        where: {
+          AND: [
+            { slug: input.slug },
+            {
+              parentId: {
+                isNull: true,
+              },
+            },
+          ],
+        },
+        with: {
+          subcategories: {
+            orderBy: (sub, { asc }) => [asc(sub.name)],
+          },
+        },
+      });
+
+      return category ?? null;
+    }),
 });
