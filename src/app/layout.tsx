@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { TRPCProvider } from "./providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full scroll-smooth antialiased",
         inter.variable,
@@ -38,7 +40,7 @@ export default function RootLayout({
         3. font-sans dipasang di body agar otomatis diwariskan ke seluruh elemen anak.
       */}
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
-        {children}
+        <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>
   );
