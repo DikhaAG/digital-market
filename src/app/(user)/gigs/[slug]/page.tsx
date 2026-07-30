@@ -1,0 +1,225 @@
+import { cache } from "react";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  ChevronRight,
+  Star,
+  ShieldCheck,
+  User as UserIcon,
+} from "lucide-react";
+import { db } from "@/lib/db";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { PackageTabs } from "./_components/PackageTabs";
+
+interface PageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+}
+
+/**
+ * React cache() memastikan query Drizzle hanya dipanggil 1x
+ * meskipun dieksekusi di generateMetadata dan GigDetailPage secara bersamaan.
+ */
+const getGigBySlug = cache(async (slug: string) => {
+  return await db.query.gigs.findFirst({
+    where: (gigs, { eq }) => eq(gigs.slug, slug),
+    with: {
+      seller: true,
+      category: {
+        with: {
+          parent: true,
+        },
+      },
+      packages: {
+        with: {
+          featureValues: {
+            with: {
+              feature: true,
+            },
+          },
+        },
+      },
+    },
+  });
+});
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const gig = await getGigBySlug(slug);
+
+  if (!gig) {
+    return { title: "Gig Not Found" };
+  }
+
+  return {
+    title: `${gig.title} | ${gig.seller.name}`,
+    description:
+      gig.about?.slice(0, 160) ??
+      `Pesan jasa ${gig.title} dari seller terverifikasi.`,
+    openGraph: {
+      title: gig.title,
+      description: gig.about ?? "",
+      images: gig.coverImage ? [{ url: gig.coverImage }] : [],
+    },
+  };
+}
+
+export default async function GigDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const gig = await getGigBySlug(slug);
+
+  if (!gig) {
+    notFound();
+  }
+
+  const { seller, category, packages } = gig;
+
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      {/* 1. Breadcrumb Navigation */}
+      <nav aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <li>
+            <Link href="/" className="hover:text-foreground transition-colors">
+              Home
+            </Link>
+          </li>
+          {category.parent && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+              <li>
+                <Link
+                  href={`/categories/${category.parent.slug}`}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {category.parent.name}
+                </Link>
+              </li>
+            </>
+          )}
+          <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+          <li>
+            <Link
+              href={`/categories/${category.slug}`}
+              className="hover:text-foreground transition-colors"
+            >
+              {category.name}
+            </Link>
+          </li>
+        </ol>
+      </nav>
+
+      {/* Layout Utam: Grid 12 Kolom */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        {/* Kolom Kiri: Detail Utama Gig & Seller (8 Kolom) */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* Title & Seller Header */}
+          <div className="space-y-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground leading-tight">
+              {gig.title}
+            </h1>
+
+            {/* Profil Ringkas Seller */}
+            <div className="flex items-center gap-3 pt-2">
+              <Avatar className="h-12 w-12 border border-border">
+                <AvatarImage src={seller.image ?? ""} alt={seller.name} />
+                <AvatarFallback>
+                  <UserIcon className="h-6 w-6 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-foreground">
+                    {seller.name}
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] gap-1 px-2 py-0"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-primary" />
+                    Verified Seller
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  <span className="font-bold text-foreground">5.0</span>
+                  <span>(100+ Ulasan)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cover Image Banner */}
+          <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-muted border border-border shadow-sm">
+            {gig.coverImage ? (
+              <Image
+                src={gig.coverImage}
+                alt={gig.title}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 66vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                No Cover Image
+              </div>
+            )}
+          </div>
+
+          {/* Deskripsi "About This Gig" */}
+          <section className="space-y-4 pt-4 border-t border-border">
+            <h2 className="text-xl font-extrabold text-foreground tracking-tight">
+              Tentang Layanan Ini
+            </h2>
+            <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+              {gig.about || "Tidak ada deskripsi rinci untuk layanan ini."}
+            </div>
+          </section>
+
+          {/* Profil Lengkap Seller */}
+          <section className="space-y-4 p-6 rounded-2xl border border-border bg-card">
+            <h2 className="text-lg font-bold text-foreground">
+              Tentang Penjual
+            </h2>
+            <div className="flex items-start gap-4">
+              <Avatar className="h-16 w-16 border border-border">
+                <AvatarImage src={seller.image ?? ""} alt={seller.name} />
+                <AvatarFallback>
+                  <UserIcon className="h-8 w-8 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="space-y-1">
+                <h3 className="font-bold text-base text-foreground">
+                  {seller.name}
+                </h3>
+                <p className="text-xs text-muted-foreground">{seller.email}</p>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Bergabung sejak{" "}
+                  {new Date(seller.createdAt).toLocaleDateString("id-ID", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Kolom Kanan: Pricing & Packages Sticky Card (4 Kolom) */}
+        <div className="lg:col-span-4">
+          <PackageTabs packages={packages} sellerName={seller.name} />
+        </div>
+      </div>
+    </div>
+  );
+}
