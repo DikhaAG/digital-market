@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, router } from "../server";
 
 export const categoryRouter = router({
   /**

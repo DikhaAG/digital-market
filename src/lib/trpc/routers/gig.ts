@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { gigs, categories, user, gigPackages } from "@/lib/db/schema";
 import { and, or, ilike, eq, gte, lte, sql, count, desc } from "drizzle-orm";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, router } from "../server";
 import { db } from "@/lib/db";
 
 export const gigRouter = router({
