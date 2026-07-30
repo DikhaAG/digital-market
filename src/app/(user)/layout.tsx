@@ -66,7 +66,7 @@ export default async function UserLayout({
         <Separator />
         <CategoryNav />
       </header>
-      <main className="flex-1 px-4 py-6">{children}</main>
+      <main className="flex-1 px-4 py-6 lg:px-20">{children}</main>
       <UserFooter sections={footerSections} />
     </div>
   );
