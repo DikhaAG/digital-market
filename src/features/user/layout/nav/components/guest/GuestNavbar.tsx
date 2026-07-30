@@ -37,19 +37,14 @@ export function GuestNavbar() {
         <div className="flex items-center gap-6 text-sm font-bold text-foreground">
           {/* Divider */}
           <div className="h-4 w-[1px] bg-border my-auto" />
-
-          <Link
-            href="/signin"
-            className="hover:text-brand-hover transition-colors"
-          >
-            Masuk
-          </Link>
-
           <Button
             nativeButton={false}
-            render={<Link href="/register">Join</Link>}
-            size="sm"
-            className="font-bold px-5 h-9 rounded-md"
+            render={
+              <Link href="/order" onClick={closeSheet}>
+                Cek Pesanan
+              </Link>
+            }
+            className="w-full font-bold h-11 text-base rounded-md"
           ></Button>
         </div>
       </div>
@@ -96,19 +91,9 @@ export function GuestNavbar() {
                   nativeButton={false}
                   render={
                     <Link href="/register" onClick={closeSheet}>
-                      Join
+                      Cek Pesanan
                     </Link>
                   }
-                  className="w-full font-bold h-11 text-base rounded-md"
-                ></Button>
-                <Button
-                  nativeButton={false}
-                  render={
-                    <Link href="/login" onClick={closeSheet}>
-                      Masuk
-                    </Link>
-                  }
-                  variant="outline"
                   className="w-full font-bold h-11 text-base rounded-md"
                 ></Button>
               </div>
@@ -124,16 +109,15 @@ export function GuestNavbar() {
           </Button>
         )}
 
-        {/* Center Logo */}
-        <UserNavbarLogo />
+        {/* Center Item: Logo */}
+        <div className="flex justify-center">
+          <UserNavbarLogo />
+        </div>
 
-        {/* Right Action: Join Button */}
-        <Button
-          nativeButton={false}
-          render={<Link href="/register">Join</Link>}
-          size="sm"
-          className="font-bold px-4 h-9 rounded-md"
-        ></Button>
+        {/* Right Spacer: Penyeimbang Grid 3 Kolom */}
+        <div className="flex justify-end">
+          {/* Tempatkan icon/tombol kanan di sini di masa mendatang jika diperlukan */}
+        </div>
       </div>
     </div>
   );
