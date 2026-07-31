@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,43 +18,37 @@ import { CategoryAccordion } from "./CategoryAccordion";
 
 export function HomeNavbar() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const closeSheet = () => setOpen(false);
 
   return (
-    <div className="w-full">
-      {/* ================= DESKTOP VIEW ================= */}
-      <div className="hidden md:flex container mx-auto px-4 h-16 items-center justify-between gap-4 md:gap-8">
-        <BrandLogo />
-        <div className="flex-1 max-w-2xl">
-          <SearchBar variant="desktop" />
-        </div>
-
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
-          <Button
-            nativeButton={false}
-            render={
-              <Link href="/order" onClick={closeSheet}>
-                Cek Pesanan
-              </Link>
-            }
-            className="w-full font-bold h-11 text-base rounded-md"
-          ></Button>
-        </div>
-      </div>
-
-      {/* ================= MOBILE VIEW ================= */}
-      <div className="flex flex-col md:hidden">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="w-10 h-10" aria-hidden="true" />
-
+    <nav className="w-full">
+      <div className="container mx-auto px-4">
+        {/* ================= DESKTOP VIEW (md:flex) ================= */}
+        <div className="hidden md:flex h-16 items-center justify-between gap-6 md:gap-8">
+          {/* 1. Logo Brand */}
           <BrandLogo />
-          {mounted ? (
+
+          {/* 2. SearchBar Tengah */}
+          <div className="flex-1 max-w-2xl">
+            <SearchBar variant="desktop" />
+          </div>
+
+          {/* 3. CTA Action Button (Standard shadcn asChild) */}
+          <div className="flex items-center gap-4 shrink-0">
+            <Button
+              nativeButton={false}
+              render={<Link href="/order">Cek Pesanan</Link>}
+              className="font-bold h-10 px-5 text-sm rounded-md"
+            ></Button>
+          </div>
+        </div>
+
+        {/* ================= MOBILE VIEW (md:hidden) ================= */}
+        <div className="flex flex-col md:hidden py-2.5 gap-3">
+          {/* Top Row: Logo di Kiri & Mobile Menu Trigger di Kanan */}
+          <div className="flex items-center justify-between">
+            <BrandLogo />
+
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger
                 render={
@@ -62,25 +56,30 @@ export function HomeNavbar() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 text-foreground cursor-pointer"
+                    aria-label="Buka Menu Navigasi"
                   >
                     <Menu className="h-6 w-6" />
-                    <span className="sr-only">Toggle Menu</span>
                   </Button>
                 }
-              />
+              ></SheetTrigger>
 
               <SheetContent
                 side="right"
                 className="w-[300px] sm:w-[350px] p-0 flex flex-col"
               >
-                <SheetHeader className="p-6 pb-4 text-left ">
-                  <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
+                <SheetHeader className="p-6 pb-4 text-left border-b border-border">
+                  <SheetTitle className="text-base font-bold">
+                    Navigasi Menu
+                  </SheetTitle>
                 </SheetHeader>
-                <div className="flex-1 overflow-y-auto p-3 text-muted-foreground font-normal text-sm space-y-1">
+
+                {/* Body Accordion Categories */}
+                <div className="flex-1 overflow-y-auto p-4 text-muted-foreground font-normal text-sm space-y-1">
                   <CategoryAccordion onLinkClick={closeSheet} />
                 </div>
 
-                <div className="p-6 bg-background border-t border-border">
+                {/* Footer Action Button */}
+                <div className="p-4 bg-background border-t border-border">
                   <Button
                     nativeButton={false}
                     render={
@@ -93,21 +92,14 @@ export function HomeNavbar() {
                 </div>
               </SheetContent>
             </Sheet>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 text-foreground"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-          )}
-        </div>
+          </div>
 
-        <div className="px-4 pb-3">
-          <SearchBar variant="mobile" />
+          {/* Bottom Row: Mobile SearchBar Full-Width */}
+          <div>
+            <SearchBar variant="mobile" />
+          </div>
         </div>
       </div>
-    </div>
+    </nav>
   );
 }
