@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +9,32 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc/client";
 
+// --- Custom Hooks ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+function useClickOutside(
+  ref: React.RefObject<HTMLElement | null>,
+  callback: () => void,
+) {
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        callback();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [ref, callback]);
+}
+
+// --- Main Component ---
 interface SearchBarProps {
   placeholder?: string;
   variant?: "desktop" | "mobile";
@@ -21,42 +47,23 @@ export function SearchBar({
   const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isPending, startTransition] = useTransition();
 
-  // Read 'q' dari URL query param
   const urlQuery = searchParams.get("q") ?? "";
   const [query, setQuery] = useState(urlQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Sync input value saat URL query param berubah
+  const debouncedQuery = useDebounce(query.trim(), 300);
+
+  // Sync state dari URL
   useEffect(() => {
     setQuery(urlQuery);
   }, [urlQuery]);
 
-  // Debounce logic untuk live autocomplete (300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query.trim());
-    }, 300);
+  // Close popover saat klik di luar
+  useClickOutside(containerRef, () => setIsOpen(false));
 
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  // Handle klik di luar container untuk menutup Popover Autocomplete
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Fetch Live Suggestions via tRPC
+  // Fetch Suggestions
   const { data, isLoading } = trpc.gig.search.useQuery(
     { q: debouncedQuery, limit: 5 },
     {
@@ -67,31 +74,37 @@ export function SearchBar({
 
   const suggestions = data?.items ?? [];
 
-  // ✅ FIXED: Menentukan HTMLFormElement pada FormEvent
-  const handleSearchSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+  // ✅ FIXED: Menggunakan React.SyntheticEvent pengganti React.FormEvent yang deprecated
+  const handleSearchSubmit = (e?: React.SyntheticEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     setIsOpen(false);
 
     const trimmed = query.trim();
-    if (trimmed) {
-      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      router.push("/search");
-    }
+    const targetUrl = trimmed
+      ? `/search?q=${encodeURIComponent(trimmed)}`
+      : "/search";
+
+    startTransition(() => {
+      router.push(targetUrl);
+    });
   };
 
   const handleClear = () => {
     setQuery("");
-    setDebouncedQuery("");
     setIsOpen(false);
   };
 
   return (
     <div ref={containerRef} className="relative w-full">
       <form onSubmit={handleSearchSubmit} className="w-full">
-        {variant === "mobile" ? (
-          /* ================= MOBILE VARIANT ================= */
-          <div className="relative flex items-center w-full">
+        <div
+          className={
+            variant === "mobile"
+              ? "relative flex items-center w-full"
+              : "flex items-center w-full border border-input rounded-md overflow-hidden bg-background focus-within:ring-1 focus-within:ring-ring transition-all"
+          }
+        >
+          <div className="relative flex-1 flex items-center">
             <Input
               type="text"
               value={query}
@@ -100,65 +113,46 @@ export function SearchBar({
                 setIsOpen(true);
               }}
               onFocus={() => setIsOpen(true)}
-              placeholder="Temukan Layanan..."
-              className="w-full h-10 border-input bg-background rounded-md pl-3 pr-16 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+              placeholder={
+                variant === "mobile" ? "Temukan Layanan..." : placeholder
+              }
+              className={
+                variant === "mobile"
+                  ? "w-full h-10 border-input bg-background rounded-md pl-3 pr-16 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+                  : "border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none h-10 px-4 text-sm bg-transparent w-full pr-8"
+              }
             />
-            <div className="absolute right-1 flex items-center gap-1">
-              {query && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-full"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              <Button
-                type="submit"
-                size="icon"
-                className="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            {query && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-2 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
               >
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-        ) : (
-          /* ================= DESKTOP VARIANT ================= */
-          <div className="flex items-center w-full border border-input rounded-md overflow-hidden bg-background focus-within:ring-1 focus-within:ring-ring transition-all">
-            <div className="relative flex-1 flex items-center">
-              <Input
-                type="text"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setIsOpen(true);
-                }}
-                onFocus={() => setIsOpen(true)}
-                placeholder={placeholder}
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none h-10 px-4 text-sm bg-transparent w-full pr-8"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="absolute right-2 text-muted-foreground hover:text-foreground p-1"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <Button
-              type="submit"
-              size="icon"
-              className="rounded-none h-10 w-12 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
-            >
+
+          <Button
+            type="submit"
+            size="icon"
+            disabled={isPending}
+            className={
+              variant === "mobile"
+                ? "absolute right-1 h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                : "rounded-none h-10 w-12 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
+            }
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
               <Search className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+            )}
+          </Button>
+        </div>
       </form>
 
-      {/* ================= AUTOCOMPLETE LIVE PREVIEW POPOVER ================= */}
+      {/* Popover Live Suggestions */}
       {isOpen && debouncedQuery.length >= 2 && (
         <div className="absolute left-0 right-0 top-full mt-2 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-left">
           {isLoading ? (
@@ -179,7 +173,6 @@ export function SearchBar({
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/70 transition-colors group"
                   >
-                    {/* Cover Image */}
                     <div className="relative h-11 w-14 rounded-md overflow-hidden bg-muted shrink-0 border border-border">
                       {gig.coverImage ? (
                         <Image
@@ -196,7 +189,6 @@ export function SearchBar({
                       )}
                     </div>
 
-                    {/* Info Gig */}
                     <div className="flex-1 min-w-0 space-y-0.5">
                       <h4 className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                         {gig.title}
@@ -207,7 +199,6 @@ export function SearchBar({
                           {gig.category.name}
                         </span>
                         <span>•</span>
-                        {/* ✅ FIXED: Terdeteksi sempurna tanpa TypeScript Error */}
                         <span className="font-semibold text-foreground">
                           Mulai ${gig.startingPrice}
                         </span>
@@ -217,7 +208,6 @@ export function SearchBar({
                 ))}
               </div>
 
-              {/* View All Search Results Footer */}
               <button
                 type="button"
                 onClick={() => handleSearchSubmit()}
