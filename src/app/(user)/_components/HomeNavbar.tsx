@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation"; // 1. Import hook usePathname
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,11 @@ import { CategoryAccordion } from "./CategoryAccordion";
 
 export function HomeNavbar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname(); // 2. Dapatkan pathname URL saat ini
+
+  // 3. Flag penanda jika user berada di Homepage ("/")
+  const isHomePage = pathname === "/";
+
   const closeSheet = () => setOpen(false);
 
   return (
@@ -28,12 +34,16 @@ export function HomeNavbar() {
           {/* 1. Logo Brand */}
           <BrandLogo />
 
-          {/* 2. SearchBar Tengah */}
-          <div className="flex-1 max-w-2xl">
-            <SearchBar variant="desktop" />
-          </div>
+          {/* 2. SearchBar Tengah (Hanya tampil jika BUKAN di halaman beranda "/") */}
+          {!isHomePage ? (
+            <div className="flex-1 max-w-2xl">
+              <SearchBar variant="desktop" />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
 
-          {/* 3. CTA Action Button (Standard shadcn asChild) */}
+          {/* 3. CTA Action Button */}
           <div className="flex items-center gap-4 shrink-0">
             <Button
               nativeButton={false}
@@ -94,10 +104,12 @@ export function HomeNavbar() {
             </Sheet>
           </div>
 
-          {/* Bottom Row: Mobile SearchBar Full-Width */}
-          <div>
-            <SearchBar variant="mobile" />
-          </div>
+          {/* Bottom Row: Mobile SearchBar (Hanya tampil jika BUKAN di halaman beranda "/") */}
+          {!isHomePage && (
+            <div>
+              <SearchBar variant="mobile" />
+            </div>
+          )}
         </div>
       </div>
     </nav>
