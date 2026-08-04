@@ -1,19 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { trpc } from "@/lib/trpc/client";
 import { gigFormSchema, type GigFormValues } from "@/lib/validations/gig";
-import {
-  Plus,
-  Loader2,
-  Package,
-  Check,
-  Sparkles,
-  Edit2,
-  Layers,
-} from "lucide-react";
+import { Plus, Loader2, Package } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

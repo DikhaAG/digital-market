@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { and, count, eq, ilike } from "drizzle-orm";
 import { router, publicProcedure } from "../trpc";
 import { db } from "@/lib/db";
 import {
@@ -11,23 +12,111 @@ import {
   gigPackages,
   gigPackageFeatureValues,
 } from "@/lib/db/schema";
-import { count, eq, ilike } from "drizzle-orm";
-import { gigFormSchema } from "@/lib/validations/gig";
+import { gigFormSchema, type GigFormValues } from "@/lib/validations/gig";
+
+// Tipe eksplisit untuk transaksi Drizzle ORM
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// ============================================================================
+// HELPER FUNCTIONS (BUSINESS LOGIC)
+// ============================================================================
+
+/**
+ * Eksekusi transaksi atomik untuk Insert/Update Gig beserta seluruh relasinya.
+ */
+async function executeGigUpsert(tx: Transaction, input: GigFormValues) {
+  let gigId = input.id;
+
+  // 1. Upsert Data Utama Gig
+  if (gigId) {
+    await tx
+      .update(gigs)
+      .set({
+        sellerId: input.sellerId,
+        categoryId: input.categoryId,
+        title: input.title,
+        slug: input.slug,
+        about: input.about ?? null,
+        coverImage: input.coverImage || null,
+      })
+      .where(eq(gigs.id, gigId));
+  } else {
+    const [inserted] = await tx
+      .insert(gigs)
+      .values({
+        sellerId: input.sellerId,
+        categoryId: input.categoryId,
+        title: input.title,
+        slug: input.slug,
+        about: input.about ?? null,
+        coverImage: input.coverImage || null,
+      })
+      .returning({ id: gigs.id });
+    gigId = inserted.id;
+  }
+
+  // 2. Sync Junction Attribute Options (Re-insert Approach)
+  await tx
+    .delete(gigAttributeOptions)
+    .where(eq(gigAttributeOptions.gigId, gigId));
+
+  if (input.attributeOptionIds.length > 0) {
+    await tx.insert(gigAttributeOptions).values(
+      input.attributeOptionIds.map((optionId) => ({
+        gigId: gigId!,
+        attributeOptionId: optionId,
+      })),
+    );
+  }
+
+  // 3. Sync Packages & Feature Values (Cascade Delete Package lama)
+  await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
+
+  for (const pkgInput of input.packages) {
+    const [insertedPkg] = await tx
+      .insert(gigPackages)
+      .values({
+        gigId: gigId!,
+        packageType: pkgInput.packageType,
+        title: pkgInput.title,
+        description: pkgInput.description ?? null,
+        price: pkgInput.price,
+        deliveryTimeDays: pkgInput.deliveryTimeDays,
+        revisions: pkgInput.revisions,
+      })
+      .returning({ id: gigPackages.id });
+
+    if (pkgInput.featureValues.length > 0) {
+      await tx.insert(gigPackageFeatureValues).values(
+        pkgInput.featureValues.map((fv) => ({
+          gigPackageId: insertedPkg.id,
+          packageFeatureId: fv.packageFeatureId,
+          isIncluded: fv.isIncluded,
+          value: fv.value ?? null,
+        })),
+      );
+    }
+  }
+
+  return { success: true, gigId };
+}
+
+// ============================================================================
+// ADMIN TRPC ROUTER
+// ============================================================================
 
 export const adminRouter = router({
-  // ================= 1. GET CATEGORY META FOR GIG FORM =================
-  // Mengambil atribut & package features dinamis berdasarkan kategori yang dipilih
+  // --------------------------------------------------------------------------
+  // SECTION 1: GIG MANAGEMENT
+  // --------------------------------------------------------------------------
+
   getCategoryGigMeta: publicProcedure
     .input(z.object({ categoryId: z.uuid() }))
     .query(async ({ input }) => {
       const categoryData = await db.query.categories.findFirst({
-        where: {
-          id: input.categoryId,
-        },
+        where: { id: input.categoryId },
         with: {
-          attributes: {
-            with: { options: true },
-          },
+          attributes: { with: { options: true } },
           packageFeatures: true,
         },
       });
@@ -35,23 +124,16 @@ export const adminRouter = router({
       return categoryData ?? { attributes: [], packageFeatures: [] };
     }),
 
-  // ================= 2. GET FULL GIG DETAILS FOR EDIT =================
   getGigDetail: publicProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
       const gig = await db.query.gigs.findFirst({
-        where: {
-          id: input.id,
-        },
+        where: { id: input.id },
         with: {
           seller: true,
           category: true,
           gigAttributes: true,
-          packages: {
-            with: {
-              featureValues: true,
-            },
-          },
+          packages: { with: { featureValues: true } },
         },
       });
 
@@ -59,110 +141,41 @@ export const adminRouter = router({
       return gig;
     }),
 
-  // ================= 3. ATOMIC UPSERT GIG WITH RELATIONS =================
   upsertGig: publicProcedure
     .input(gigFormSchema)
     .mutation(async ({ input }) => {
       return await db.transaction(async (tx) => {
-        let gigId = input.id;
-
-        // A. Upsert ke Tabel Gigs
-        if (gigId) {
-          await tx
-            .update(gigs)
-            .set({
-              sellerId: input.sellerId,
-              categoryId: input.categoryId,
-              title: input.title,
-              slug: input.slug,
-              about: input.about ?? null,
-              coverImage: input.coverImage || null,
-            })
-            .where(eq(gigs.id, gigId));
-        } else {
-          const [inserted] = await tx
-            .insert(gigs)
-            .values({
-              sellerId: input.sellerId,
-              categoryId: input.categoryId,
-              title: input.title,
-              slug: input.slug,
-              about: input.about ?? null,
-              coverImage: input.coverImage || null,
-            })
-            .returning({ id: gigs.id });
-          gigId = inserted.id;
-        }
-
-        // B. Update Junction Gig Attribute Options (Hapus lalu Insert ulang)
-        await tx
-          .delete(gigAttributeOptions)
-          .where(eq(gigAttributeOptions.gigId, gigId));
-
-        if (input.attributeOptionIds.length > 0) {
-          await tx.insert(gigAttributeOptions).values(
-            input.attributeOptionIds.map((optionId) => ({
-              gigId: gigId!,
-              attributeOptionId: optionId,
-            })),
-          );
-        }
-
-        // C. Clean & Re-insert Packages & Feature Values
-        // Hapus paket lama (Cascade delete akan otomatis menghapus gigPackageFeatureValues)
-        await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
-
-        for (const pkgInput of input.packages) {
-          const [insertedPkg] = await tx
-            .insert(gigPackages)
-            .values({
-              gigId: gigId!,
-              packageType: pkgInput.packageType,
-              title: pkgInput.title,
-              description: pkgInput.description ?? null,
-              price: pkgInput.price,
-              deliveryTimeDays: pkgInput.deliveryTimeDays,
-              revisions: pkgInput.revisions,
-            })
-            .returning({ id: gigPackages.id });
-
-          if (pkgInput.featureValues.length > 0) {
-            await tx.insert(gigPackageFeatureValues).values(
-              pkgInput.featureValues.map((fv) => ({
-                gigPackageId: insertedPkg.id,
-                packageFeatureId: fv.packageFeatureId,
-                isIncluded: fv.isIncluded,
-                value: fv.value ?? null,
-              })),
-            );
-          }
-        }
-
-        return { success: true, gigId };
+        return await executeGigUpsert(tx, input);
       });
     }),
 
-  // ================= 4. GIG AUDIT LIST =================
   getGigsForAudit: publicProcedure
     .input(
       z.object({
         search: z.string().optional(),
-        page: z.number().default(1),
-        limit: z.number().default(10),
+        categoryId: z.uuid().optional(),
+        sellerId: z.string().optional(),
+        sortBy: z.enum(["createdAt", "title"]).default("createdAt"),
+        sortOrder: z.enum(["asc", "desc"]).default("desc"),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).default(10),
       }),
     )
     .query(async ({ input }) => {
-      const { search, page, limit } = input;
+      const { search, categoryId, sellerId, sortBy, sortOrder, page, limit } =
+        input;
       const offset = (page - 1) * limit;
-      const whereCondition = search
-        ? ilike(gigs.title, `%${search}%`)
-        : undefined;
 
+      // Filter RQB v2 untuk list items
       const items = await db.query.gigs.findMany({
-        where: search ? { title: { ilike: `%${search}%` } } : undefined,
+        where: {
+          ...(search?.trim() ? { title: { ilike: `%${search.trim()}%` } } : {}),
+          ...(categoryId ? { categoryId } : {}),
+          ...(sellerId ? { sellerId } : {}),
+        },
         limit,
         offset,
-        orderBy: (gigs, { desc }) => [desc(gigs.createdAt)],
+        orderBy: { [sortBy]: sortOrder },
         with: {
           seller: true,
           category: true,
@@ -170,15 +183,26 @@ export const adminRouter = router({
         },
       });
 
+      // Filter SQL Builder untuk Count Query
+      const conditions = [];
+      if (search?.trim())
+        conditions.push(ilike(gigs.title, `%${search.trim()}%`));
+      if (categoryId) conditions.push(eq(gigs.categoryId, categoryId));
+      if (sellerId) conditions.push(eq(gigs.sellerId, sellerId));
+
+      const whereExpr = conditions.length > 0 ? and(...conditions) : undefined;
+
       const [totalResult] = await db
         .select({ total: count() })
         .from(gigs)
-        .where(whereCondition);
+        .where(whereExpr);
+
+      const total = totalResult?.total ?? 0;
 
       return {
         items,
-        total: totalResult?.total ?? 0,
-        totalPages: Math.ceil((totalResult?.total ?? 0) / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       };
     }),
 
@@ -189,41 +213,35 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  // Helper mendapatkan daftar Seller untuk pilihan dropdown
   getAllSellers: publicProcedure.query(async () => {
     return await db.query.user.findMany({
-      orderBy: (user, { asc }) => [asc(user.name)],
+      orderBy: { name: "asc" },
     });
   }),
-  // ================= 1. HIERARCHICAL CATEGORY DATA =================
+
+  // --------------------------------------------------------------------------
+  // SECTION 2: CATEGORY MANAGEMENT
+  // --------------------------------------------------------------------------
+
   getCategoryTree: publicProcedure.query(async () => {
     return await db.query.categories.findMany({
-      where: {
-        parentId: {
-          isNull: true,
-        },
-      },
+      where: { parentId: { isNull: true } },
       with: {
         subcategories: {
           with: {
-            attributes: {
-              with: { options: true },
-            },
+            attributes: { with: { options: true } },
             packageFeatures: true,
             gigs: { columns: { id: true } },
           },
         },
-        attributes: {
-          with: { options: true },
-        },
+        attributes: { with: { options: true } },
         packageFeatures: true,
         gigs: { columns: { id: true } },
       },
-      orderBy: (categories, { asc }) => [asc(categories.name)],
+      orderBy: { name: "asc" },
     });
   }),
 
-  // ================= 2. CATEGORY CRUD =================
   createCategory: publicProcedure
     .input(
       z.object({
@@ -245,6 +263,7 @@ export const adminRouter = router({
           image: input.image ?? null,
         })
         .returning();
+
       return newCategory;
     }),
 
@@ -269,6 +288,7 @@ export const adminRouter = router({
         })
         .where(eq(categories.id, input.id))
         .returning();
+
       return updated;
     }),
 
@@ -279,7 +299,10 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  // ================= 3. FILTER ATTRIBUTES & OPTIONS CRUD =================
+  // --------------------------------------------------------------------------
+  // SECTION 3: ATTRIBUTES & OPTIONS MANAGEMENT
+  // --------------------------------------------------------------------------
+
   createAttribute: publicProcedure
     .input(
       z.object({
@@ -297,6 +320,7 @@ export const adminRouter = router({
           slug: input.slug,
         })
         .returning();
+
       return newAttr;
     }),
 
@@ -324,6 +348,7 @@ export const adminRouter = router({
           value: input.value,
         })
         .returning();
+
       return newOption;
     }),
 
@@ -336,7 +361,10 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  // ================= 4. PACKAGE FEATURES MASTER CRUD =================
+  // --------------------------------------------------------------------------
+  // SECTION 4: PACKAGE FEATURES MASTER MANAGEMENT
+  // --------------------------------------------------------------------------
+
   addPackageFeature: publicProcedure
     .input(
       z.object({
@@ -354,6 +382,7 @@ export const adminRouter = router({
           type: input.type,
         })
         .returning();
+
       return newFeature;
     }),
 
