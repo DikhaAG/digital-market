@@ -3,42 +3,15 @@ import { router, publicProcedure } from "../trpc";
 import { db } from "@/lib/db";
 import {
   categories,
-  gigs,
-  user,
   packageFeatures,
-  gigPackages,
+  attributes,
+  attributeOptions,
 } from "@/lib/db/schema";
-import { eq, count, sql, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export const adminRouter = router({
-  // ================= 1. DASHBOARD METRICS =================
-  getDashboardStats: publicProcedure.query(async () => {
-    const [userCount] = await db.select({ value: count() }).from(user);
-    const [gigCount] = await db.select({ value: count() }).from(gigs);
-    const [categoryCount] = await db
-      .select({ value: count() })
-      .from(categories);
-
-    // Hitung rata-rata harga paket layanan secara keseluruhan
-    const [avgPrice] = await db
-      .select({
-        avg: sql<number>`COALESCE(AVG(${gigPackages.price}), 0)`.mapWith(
-          Number,
-        ),
-      })
-      .from(gigPackages);
-
-    return {
-      totalUsers: userCount?.value ?? 0,
-      totalGigs: gigCount?.value ?? 0,
-      totalCategories: categoryCount?.value ?? 0,
-      averagePackagePrice: Math.round(avgPrice?.avg ?? 0),
-    };
-  }),
-
-  // ================= 2. HIERARCHICAL CATEGORY MANAGEMENT =================
+  // ================= 1. HIERARCHICAL CATEGORY DATA =================
   getCategoryTree: publicProcedure.query(async () => {
-    // Ambil Kategori Utama (Parent) beserta Sub-kategori, Attributes, dan Package Features
     return await db.query.categories.findMany({
       where: {
         parentId: {
@@ -52,17 +25,20 @@ export const adminRouter = router({
               with: { options: true },
             },
             packageFeatures: true,
+            gigs: { columns: { id: true } },
           },
         },
         attributes: {
           with: { options: true },
         },
         packageFeatures: true,
+        gigs: { columns: { id: true } },
       },
       orderBy: (categories, { asc }) => [asc(categories.name)],
     });
   }),
 
+  // ================= 2. CATEGORY CRUD =================
   createCategory: publicProcedure
     .input(
       z.object({
@@ -87,7 +63,95 @@ export const adminRouter = router({
       return newCategory;
     }),
 
-  // ================= 3. PACKAGE FEATURES MASTER MANAGEMENT =================
+  updateCategory: publicProcedure
+    .input(
+      z.object({
+        id: z.uuid(),
+        name: z.string().min(2),
+        slug: z.string().min(2),
+        icon: z.string().optional().nullable(),
+        image: z.string().optional().nullable(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [updated] = await db
+        .update(categories)
+        .set({
+          name: input.name,
+          slug: input.slug,
+          icon: input.icon,
+          image: input.image,
+        })
+        .where(eq(categories.id, input.id))
+        .returning();
+      return updated;
+    }),
+
+  deleteCategory: publicProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db.delete(categories).where(eq(categories.id, input.id));
+      return { success: true };
+    }),
+
+  // ================= 3. FILTER ATTRIBUTES & OPTIONS CRUD =================
+  createAttribute: publicProcedure
+    .input(
+      z.object({
+        categoryId: z.uuid(),
+        name: z.string().min(2),
+        slug: z.string().min(2),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [newAttr] = await db
+        .insert(attributes)
+        .values({
+          categoryId: input.categoryId,
+          name: input.name,
+          slug: input.slug,
+        })
+        .returning();
+      return newAttr;
+    }),
+
+  deleteAttribute: publicProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db.delete(attributes).where(eq(attributes.id, input.id));
+      return { success: true };
+    }),
+
+  createAttributeOption: publicProcedure
+    .input(
+      z.object({
+        attributeId: z.uuid(),
+        label: z.string().min(1),
+        value: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [newOption] = await db
+        .insert(attributeOptions)
+        .values({
+          attributeId: input.attributeId,
+          label: input.label,
+          value: input.value,
+        })
+        .returning();
+      return newOption;
+    }),
+
+  deleteAttributeOption: publicProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db
+        .delete(attributeOptions)
+        .where(eq(attributeOptions.id, input.id));
+      return { success: true };
+    }),
+
+  // ================= 4. PACKAGE FEATURES MASTER CRUD =================
   addPackageFeature: publicProcedure
     .input(
       z.object({
@@ -112,54 +176,6 @@ export const adminRouter = router({
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {
       await db.delete(packageFeatures).where(eq(packageFeatures.id, input.id));
-      return { success: true };
-    }),
-
-  // ================= 4. GIG AUDIT & MODERATION =================
-  getGigsForAudit: publicProcedure
-    .input(
-      z.object({
-        search: z.string().optional(),
-        page: z.number().default(1),
-        limit: z.number().default(10),
-      }),
-    )
-    .query(async ({ input }) => {
-      const { search, page, limit } = input;
-      const offset = (page - 1) * limit;
-
-      const whereCondition = search
-        ? ilike(gigs.title, `%${search}%`)
-        : undefined;
-
-      const items = await db.query.gigs.findMany({
-        where: search ? { title: { ilike: `%${search}%` } } : undefined,
-        limit,
-        offset,
-        orderBy: { createdAt: "desc" },
-        with: {
-          seller: true,
-          category: true,
-          packages: true,
-        },
-      });
-
-      const [totalResult] = await db
-        .select({ total: count() })
-        .from(gigs)
-        .where(whereCondition);
-
-      return {
-        items,
-        total: totalResult?.total ?? 0,
-        totalPages: Math.ceil((totalResult?.total ?? 0) / limit),
-      };
-    }),
-
-  deleteGig: publicProcedure
-    .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db.delete(gigs).where(eq(gigs.id, input.id));
       return { success: true };
     }),
 });
