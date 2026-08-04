@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
-import { Search, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Search, Trash2, ExternalLink, Loader2, Edit3 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GigFormDialog } from "./_components/GigFormDialog";
 
 export default function GigModerationPage() {
   const [search, setSearch] = useState("");
@@ -39,20 +40,25 @@ export default function GigModerationPage() {
           </p>
         </div>
 
-        {/* Filter Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari judul gig..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-3">
+          {/* Filter Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari judul gig..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Create New Gig Modal */}
+          <GigFormDialog />
         </div>
       </div>
 
       {/* Moderation Table */}
-      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/50 border-b border-border text-xs uppercase font-bold text-muted-foreground">
@@ -115,24 +121,44 @@ export default function GigModerationPage() {
                     </td>
 
                     {/* Seller */}
+                    {/* Seller Column */}
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-7 w-7">
-                          <AvatarImage src={gig.seller.image ?? ""} />
-                          <AvatarFallback>
-                            {gig.seller.name.slice(0, 2).toUpperCase()}
+                          {/* 1. Gunakan undefined jika image null/empty agar Radix AvatarFallback otomatis aktif */}
+                          <AvatarImage
+                            src={gig.seller?.image ?? undefined}
+                            alt={gig.seller?.name ?? "Seller"}
+                          />
+                          <AvatarFallback className="text-[10px] font-bold">
+                            {/* 2. Safe Fallback Initials: Melindungi dari error .slice() jika name null/undefined */}
+                            {gig.seller?.name
+                              ? gig.seller.name.trim().slice(0, 2).toUpperCase()
+                              : "US"}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-semibold text-xs text-foreground">
-                          {gig.seller.name}
+
+                        {/* 3. Visual feedback dengan gaya muted/italic jika seller tidak ditemukan/terhapus */}
+                        <span
+                          className={`font-semibold text-xs ${
+                            gig.seller?.name
+                              ? "text-foreground"
+                              : "text-muted-foreground italic"
+                          }`}
+                        >
+                          {gig.seller?.name ?? "Deleted Seller"}
                         </span>
                       </div>
                     </td>
 
-                    {/* Kategori */}
+                    {/* Category Column */}
                     <td className="p-4">
-                      <Badge variant="secondary" className="text-xs">
-                        {gig.category.name}
+                      {/* 4. Dynamic Badge Variant untuk membedakan kategori aktif vs tak terdefinisi */}
+                      <Badge
+                        variant={gig.category?.name ? "secondary" : "outline"}
+                        className="text-xs"
+                      >
+                        {gig.category?.name ?? "Uncategorized"}
                       </Badge>
                     </td>
 
@@ -153,19 +179,35 @@ export default function GigModerationPage() {
 
                     {/* Actions */}
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Edit Button dengan Modal Dynamic Form */}
+                        <GigFormDialog
+                          gigId={gig.id}
+                          trigger={
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+
+                        {/* View External Link */}
                         <Button
+                          size="icon"
+                          variant="ghost"
                           nativeButton={false}
                           render={
                             <Link href={`/gigs/${gig.slug}`} target="_blank">
                               <ExternalLink className="h-4 w-4" />
                             </Link>
                           }
-                          size="icon"
-                          variant="ghost"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         ></Button>
 
+                        {/* Delete Button */}
                         <Button
                           size="icon"
                           variant="ghost"
