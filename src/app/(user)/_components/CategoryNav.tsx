@@ -1,4 +1,3 @@
-// src/app/(user)/_components/CategoryNavClient.tsx
 "use client";
 
 import Link from "next/link";
@@ -14,7 +13,8 @@ export function CategoryNav() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 flex items-center gap-6 py-3 overflow-hidden">
+      /* Sembunyikan Skeleton di layar mobile, tampilkan flex di md/desktop */
+      <div className="hidden md:flex container mx-auto px-4 items-center gap-6 py-3 overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
           <Skeleton key={i} className="h-4 w-24 shrink-0 rounded" />
         ))}
@@ -25,7 +25,8 @@ export function CategoryNav() {
   if (!categories || categories.length === 0) return null;
 
   return (
-    <div className="container mx-auto px-4 relative flex items-center overflow-x-auto no-scrollbar py-2 text-sm text-muted-foreground whitespace-nowrap gap-6">
+    /* Gunakan hidden md:flex menggantikan flex biasa */
+    <div className="hidden md:flex container mx-auto px-4 relative items-center overflow-x-auto no-scrollbar py-2 text-sm text-muted-foreground whitespace-nowrap gap-6">
       {categories.map((category) => (
         <Link
           key={category.id}

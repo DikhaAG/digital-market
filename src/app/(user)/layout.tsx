@@ -20,7 +20,6 @@ export default async function UserLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Fetch kategori utama langsung dari DB menggunakan sintaks native Drizzle
   const dbCategories = await db.query.categories.findMany({
     where: {
       parentId: {
@@ -30,13 +29,11 @@ export default async function UserLayout({
     orderBy: (categories, { asc }) => [asc(categories.name)],
   });
 
-  // 2. Format kategori DB ke struktur link footer
   const categoryLinks: FooterLink[] = dbCategories.map((cat) => ({
     label: cat.name,
     href: `/categories/${cat.slug}`,
   }));
 
-  // 3. Gabungkan dengan seksi footer statis
   const footerSections: FooterSection[] = [
     {
       title: "Categories",
@@ -63,7 +60,8 @@ export default async function UserLayout({
     <div className="flex flex-col flex-1">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <HomeNavbar />
-        <Separator />
+        {/* Sembunyikan Separator di mobile agar tidak bertumpuk dengan border header */}
+        <Separator className="hidden md:block" />
         <CategoryNav />
       </header>
       <main className="flex-1 px-4 py-6 lg:px-20">{children}</main>
