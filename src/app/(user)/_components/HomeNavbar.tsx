@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 
 import { BrandLogo } from "@/components/BrandLogo";
-import { SearchBar } from "./SearchBar";
+import { NavbarSearchBar } from "./NavbarSearchBar";
 import { CategoryAccordion } from "./CategoryAccordion";
 
 export function HomeNavbar() {
@@ -37,7 +37,7 @@ export function HomeNavbar() {
           {/* 2. SearchBar Tengah (Hanya tampil jika BUKAN di halaman beranda "/") */}
           {!isHomePage ? (
             <div className="flex-1 max-w-2xl">
-              <SearchBar variant="desktop" />
+              <NavbarSearchBar variant="desktop" />
             </div>
           ) : (
             <div className="flex-1" />
@@ -107,7 +107,7 @@ export function HomeNavbar() {
           {/* Bottom Row: Mobile SearchBar (Hanya tampil jika BUKAN di halaman beranda "/") */}
           {!isHomePage && (
             <div>
-              <SearchBar variant="mobile" />
+              <NavbarSearchBar variant="mobile" />
             </div>
           )}
         </div>

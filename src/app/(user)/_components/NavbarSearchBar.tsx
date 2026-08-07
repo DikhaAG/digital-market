@@ -35,15 +35,15 @@ function useClickOutside(
 }
 
 // --- Main Component ---
-interface SearchBarProps {
+interface NavbarSearchBarProps {
   placeholder?: string;
   variant?: "desktop" | "mobile";
 }
 
-export function SearchBar({
+export function NavbarSearchBar({
   placeholder = "What service are you looking for today?",
   variant = "desktop",
-}: SearchBarProps) {
+}: NavbarSearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +104,7 @@ export function SearchBar({
               : "flex items-center w-full border border-input rounded-md overflow-hidden bg-background focus-within:ring-1 focus-within:ring-ring transition-all"
           }
         >
-          <div className="relative flex-1 flex items-center">
+          <div className="relative flex-1 flex items-center ">
             <Input
               type="text"
               value={query}
@@ -140,7 +140,8 @@ export function SearchBar({
             className={
               variant === "mobile"
                 ? "absolute right-1 h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                : "rounded-none h-10 w-12 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
+                : "rounded-lg h-10 w-12 border shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer" +
+                  ""
             }
           >
             {isPending ? (
