@@ -23,12 +23,18 @@ import {
   Tag,
   LucideIcon,
 } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
 
 // ==========================================
 // 1. TYPES & CONSTANTS
 // ==========================================
+interface SearchFormValues {
+  q: string;
+}
+
 interface HeroSearchBarProps {
   placeholder?: string;
   defaultValue?: string;
@@ -41,6 +47,15 @@ interface SuggestionChip {
   icon: LucideIcon;
 }
 
+interface GigSuggestion {
+  id: string;
+  slug: string;
+  title: string;
+  coverImage: string | null;
+  startingPrice: number;
+  category: { name: string };
+}
+
 const SUGGESTION_CHIPS: SuggestionChip[] = [
   { label: "Fullstack Web Next.js", icon: Code2 },
   { label: "Desain Logo & Branding", icon: Palette },
@@ -50,15 +65,6 @@ const SUGGESTION_CHIPS: SuggestionChip[] = [
 // ==========================================
 // 2. CUSTOM HOOKS
 // ==========================================
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
-
 function useClickOutside(
   ref: React.RefObject<HTMLElement | null>,
   callback: () => void,
@@ -75,7 +81,7 @@ function useClickOutside(
 }
 
 function useAutoResizeTextarea(value: string, maxHeight = 180) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -114,7 +120,7 @@ function HeroSearchActions({
         <button
           type="button"
           onClick={onClear}
-          className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+          className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
           title="Hapus teks"
         >
           <X className="h-4 w-4" />
@@ -186,14 +192,7 @@ function SuggestionChips({ chips, onSelectChip }: SuggestionChipsProps) {
 
 interface SearchSuggestionsPopoverProps {
   isLoading: boolean;
-  suggestions: Array<{
-    id: string;
-    slug: string;
-    title: string;
-    coverImage: string | null;
-    startingPrice: number;
-    category: { name: string };
-  }>;
+  suggestions: GigSuggestion[];
   debouncedQuery: string;
   onSelectSuggestion: () => void;
   onSubmitSearch: () => void;
@@ -285,7 +284,7 @@ function SearchSuggestionsPopover({
 }
 
 // ==========================================
-// 4. MAIN SEARCHBAR COMPONENT
+// 4. MAIN SEARCHBAR COMPONENT (REACT HOOK FORM)
 // ==========================================
 export function HeroSearchBar({
   placeholder = "Tanyakan atau cari layanan/produk digital...",
@@ -297,116 +296,140 @@ export function HeroSearchBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  const [query, setQuery] = useState(defaultValue);
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const debouncedQuery = useDebounce(query.trim(), 300);
+  // 1. Inisialisasi React Hook Form
+  const { register, handleSubmit, setValue, control } =
+    useForm<SearchFormValues>({
+      defaultValues: {
+        q: defaultValue,
+      },
+    });
 
-  // Custom Hook Auto-Resize Textarea & Click Outside
-  const textareaRef = useAutoResizeTextarea(query);
+  // 2. Monitoring query menggunakan useWatch & useDebounce
+  const queryValue = useWatch({ control, name: "q" }) ?? "";
+  const debouncedQuery = useDebounce(queryValue.trim(), 300) ?? "";
+
+  // 3. Custom Hook Auto-Resize Textarea & Click Outside
+  const textareaRef = useAutoResizeTextarea(queryValue);
   useClickOutside(containerRef, () => setIsOpen(false));
 
-  // Fetch Live Suggestions via tRPC Query
+  // 4. Fetch Live Suggestions via tRPC Query
   const { data, isLoading } = trpc.gig.search.useQuery(
     { q: debouncedQuery, limit: 5 },
     {
-      enabled: debouncedQuery.length >= 2 && isOpen,
+      enabled: (debouncedQuery?.length ?? 0) >= 2 && isOpen,
       staleTime: 1000 * 60,
     },
   );
 
   const suggestions = data?.items ?? [];
 
-  const handleSubmit = useCallback(() => {
-    const trimmed = query.trim();
-    setIsOpen(false);
+  // 5. Submit Handler
+  const onSubmit = useCallback(
+    (values: SearchFormValues) => {
+      setIsOpen(false);
+      const trimmed = values.q.trim();
 
-    if (onSearch) {
-      onSearch(trimmed);
-      return;
-    }
+      if (onSearch) {
+        onSearch(trimmed);
+        return;
+      }
 
-    const targetUrl = trimmed
-      ? `/search?q=${encodeURIComponent(trimmed)}`
-      : "/search";
+      const targetUrl = trimmed
+        ? `/search?q=${encodeURIComponent(trimmed)}`
+        : "/search";
 
-    startTransition(() => {
-      router.push(targetUrl);
-    });
-  }, [query, onSearch, router]);
+      startTransition(() => {
+        router.push(targetUrl);
+      });
+    },
+    [onSearch, router],
+  );
 
+  // Keyboard Navigation: Enter (Tanpa Shift) memicu submit form
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      handleSubmit(onSubmit)();
     }
   };
 
+  // Click Suggestion Chip Handler
   const handleChipClick = (label: string) => {
-    setQuery(label);
+    setValue("q", label);
     setIsOpen(true);
     textareaRef.current?.focus();
   };
+
+  // Clear Input Handler
+  const handleClear = () => {
+    setValue("q", "");
+    setIsOpen(false);
+  };
+
+  // Merging RHF Ref & Local Textarea Ref
+  const { ref: registerRef, ...registerProps } = register("q", {
+    onChange: () => setIsOpen(true),
+  });
 
   return (
     <div
       ref={containerRef}
       className={cn("w-full space-y-3 relative z-30", className)}
     >
-      {/* Single-Row Input Container */}
-      <div
-        className={cn(
-          "relative w-full rounded-2xl bg-card/90 backdrop-blur-xl border border-border/80 shadow-lg transition-all duration-300 z-20",
-          "hover:border-primary/40 hover:shadow-xl",
-          isFocused &&
-            "border-primary/80 ring-2 ring-primary/20 bg-card shadow-2xl shadow-primary/5",
-        )}
-      >
-        <div className="flex items-center gap-2 p-2 pl-4 sm:p-2.5 sm:pl-5">
-          {/* Textarea Input */}
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setIsOpen(true);
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => {
-              setIsFocused(true);
-              setIsOpen(true);
-            }}
-            onBlur={() => setIsFocused(false)}
-            placeholder={placeholder}
-            className={cn(
-              "w-full resize-none bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted-foreground/70",
-              "focus:outline-none min-h-[28px] max-h-[180px] py-1 font-sans leading-relaxed",
-            )}
-          />
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+        {/* Single-Row Input Container */}
+        <div
+          className={cn(
+            "relative w-full rounded-2xl bg-card/90 backdrop-blur-xl border border-border/80 shadow-lg transition-all duration-300 z-20",
+            "hover:border-primary/40 hover:shadow-xl",
+            isFocused &&
+              "border-primary/80 ring-2 ring-primary/20 bg-card shadow-2xl shadow-primary/5",
+          )}
+        >
+          <div className="flex items-center gap-2 p-2 pl-4 sm:p-2.5 sm:pl-5">
+            {/* Textarea Input dengan Merged Refs */}
+            <textarea
+              ref={(e) => {
+                registerRef(e);
+                textareaRef.current = e;
+              }}
+              {...registerProps}
+              rows={1}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                setIsFocused(true);
+                setIsOpen(true);
+              }}
+              onBlur={() => setIsFocused(false)}
+              placeholder={placeholder}
+              className={cn(
+                "w-full resize-none bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted-foreground/70",
+                "focus:outline-none min-h-[28px] max-h-[180px] py-1 font-sans leading-relaxed",
+              )}
+            />
 
-          {/* Action Control Group */}
-          <HeroSearchActions
-            query={query}
-            isPending={isPending}
-            onClear={() => {
-              setQuery("");
-              setIsOpen(false);
-            }}
-            onSubmit={handleSubmit}
-          />
+            {/* Action Control Group */}
+            <HeroSearchActions
+              query={queryValue}
+              isPending={isPending}
+              onClear={handleClear}
+              onSubmit={handleSubmit(onSubmit)}
+            />
+          </div>
         </div>
-      </div>
+      </form>
 
       {/* Popover Live Suggestions */}
-      {isOpen && debouncedQuery.length >= 2 && (
+      {isOpen && (debouncedQuery?.length ?? 0) >= 2 && (
         <SearchSuggestionsPopover
           isLoading={isLoading}
           suggestions={suggestions}
           debouncedQuery={debouncedQuery}
           onSelectSuggestion={() => setIsOpen(false)}
-          onSubmitSearch={handleSubmit}
+          onSubmitSearch={handleSubmit(onSubmit)}
         />
       )}
 

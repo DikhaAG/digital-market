@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition, useCallback } from "react";
+import { useEffect, useRef, useTransition, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, X, Loader2, ArrowRight, Tag } from "lucide-react";
 import { cva } from "class-variance-authority";
+import { useForm, useWatch } from "react-hook-form";
 import { useDebounce } from "@/hooks/use-debounce";
 
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,10 @@ const searchButtonVariants = cva(
 // 2. TYPES
 // ==========================================
 type SearchVariant = "desktop" | "mobile";
+
+interface SearchFormValues {
+  q: string;
+}
 
 interface NavbarSearchBarProps {
   placeholder?: string;
@@ -203,7 +208,7 @@ function SearchPopover({
 }
 
 // ==========================================
-// 5. MAIN COMPONENT
+// 5. MAIN COMPONENT (REACT HOOK FORM)
 // ==========================================
 export function NavbarSearchBar({
   placeholder = "What service are you looking for today?",
@@ -214,23 +219,31 @@ export function NavbarSearchBar({
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
-
-  const urlQuery = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(urlQuery);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Debouncing State (Menggunakan library use-debounce)
-  const debouncedQuery = useDebounce(query.trim(), 300) ?? "";
+  const urlQuery = searchParams.get("q") ?? "";
 
-  // Sync state dengan URL perubahan parameter
+  // 1. Inisialisasi React Hook Form
+  const { register, handleSubmit, setValue, control } =
+    useForm<SearchFormValues>({
+      defaultValues: {
+        q: urlQuery,
+      },
+    });
+
+  // 2. Gunakan useWatch untuk performa re-render optimal saat mengetik
+  const queryValue = useWatch({ control, name: "q" }) ?? "";
+  const debouncedQuery = useDebounce(queryValue.trim(), 300) ?? "";
+
+  // 3. Sync State dari URL ke React Hook Form saat URL berubah
   useEffect(() => {
-    setQuery(urlQuery);
-  }, [urlQuery]);
+    setValue("q", urlQuery);
+  }, [urlQuery, setValue]);
 
-  // Handle klik di luar container
+  // Handle klik di luar container popover
   useClickOutside(containerRef, () => setIsOpen(false));
 
-  // Fetch Live Suggestions
+  // 4. Fetch Live Suggestions via tRPC Query
   const { data, isLoading } = trpc.gig.search.useQuery(
     { q: debouncedQuery, limit: 5 },
     {
@@ -241,13 +254,12 @@ export function NavbarSearchBar({
 
   const suggestions = data?.items ?? [];
 
-  // Submit Handler
-  const handleSearchSubmit = useCallback(
-    (e?: React.FormEvent) => {
-      e?.preventDefault();
+  // 5. Form Submit Handler dengan React Hook Form
+  const onSubmit = useCallback(
+    (values: SearchFormValues) => {
       setIsOpen(false);
 
-      const trimmed = query.trim();
+      const trimmed = values.q.trim();
       const targetUrl = trimmed
         ? `/search?q=${encodeURIComponent(trimmed)}`
         : "/search";
@@ -256,11 +268,12 @@ export function NavbarSearchBar({
         router.push(targetUrl);
       });
     },
-    [query, router],
+    [router],
   );
 
+  // Clear Input Handler
   const handleClear = () => {
-    setQuery("");
+    setValue("q", "");
     setIsOpen(false);
   };
 
@@ -269,22 +282,20 @@ export function NavbarSearchBar({
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      <form onSubmit={handleSearchSubmit} className="w-full">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full">
         <div className={searchContainerVariants({ variant })}>
           <div className="relative flex-1 flex items-center">
             <Input
               type="text"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setIsOpen(true);
-              }}
+              {...register("q", {
+                onChange: () => setIsOpen(true),
+              })}
               onFocus={() => setIsOpen(true)}
               placeholder={currentPlaceholder}
               className={inputVariants({ variant })}
             />
 
-            {query && (
+            {Boolean(queryValue) && (
               <button
                 type="button"
                 onClick={handleClear}
@@ -312,13 +323,13 @@ export function NavbarSearchBar({
       </form>
 
       {/* Live Suggestions Popover */}
-      {isOpen && debouncedQuery.length >= 2 && (
+      {isOpen && (debouncedQuery?.length ?? 0) >= 2 && (
         <SearchPopover
           isLoading={isLoading}
           suggestions={suggestions}
           debouncedQuery={debouncedQuery}
           onClose={() => setIsOpen(false)}
-          onSubmit={handleSearchSubmit}
+          onSubmit={handleSubmit(onSubmit)}
         />
       )}
     </div>
