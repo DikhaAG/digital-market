@@ -93,42 +93,47 @@ export function NavbarSearchBar({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+        {/* Unified Input Container */}
         <div className={searchContainerVariants({ variant })}>
-          <div className="relative flex-1 flex items-center">
-            <Input
-              type="text"
-              {...register("q", {
-                onChange: () => setIsOpen(true),
-              })}
-              onFocus={() => setIsOpen(true)}
-              placeholder={currentPlaceholder}
-              className={inputVariants({ variant })}
-            />
+          <Input
+            type="text"
+            {...register("q", {
+              onChange: () => setIsOpen(true),
+            })}
+            onFocus={() => setIsOpen(true)}
+            placeholder={currentPlaceholder}
+            className={inputVariants({ variant })}
+          />
 
+          {/* Action Toolbar di dalam Input (Kanan) */}
+          <div className="absolute right-1.5 flex items-center gap-1 z-10">
+            {/* Clear Button */}
             {Boolean(queryValue) && (
               <button
                 type="button"
                 onClick={handleClear}
-                className="absolute right-2 text-muted-foreground hover:text-foreground p-1 cursor-pointer transition-colors"
+                className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
                 title="Hapus teks"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
-          </div>
 
-          <Button
-            type="submit"
-            size="icon"
-            disabled={isPending}
-            className={searchButtonVariants({ variant })}
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
+            {/* Inset Search Button */}
+            <Button
+              type="submit"
+              size="icon"
+              disabled={isPending}
+              className={searchButtonVariants({ variant })}
+              title="Cari"
+            >
+              {isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5 stroke-[2.5]" />
+              )}
+            </Button>
+          </div>
         </div>
       </form>
 
