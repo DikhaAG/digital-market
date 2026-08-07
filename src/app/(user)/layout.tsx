@@ -60,10 +60,14 @@ export default async function UserLayout({
     <div className="flex flex-col flex-1">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <HomeNavbar />
-        {/* Sembunyikan Separator di mobile agar tidak bertumpuk dengan border header */}
-        <Separator className="hidden md:block" />
-        <CategoryNav />
+
+        {/* BEST APPROACH: Kendalikan visibilitas navigasi kategori khusus desktop di sini */}
+        <div className="hidden md:block">
+          <Separator />
+          <CategoryNav />
+        </div>
       </header>
+
       <main className="flex-1 px-3 py-6 lg:px-22">{children}</main>
       <UserFooter sections={footerSections} />
     </div>
