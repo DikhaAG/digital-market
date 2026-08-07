@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { gigs, categories, user, gigPackages } from "@/lib/db/schema";
 import { and, or, ilike, eq, gte, lte, sql, count, desc } from "drizzle-orm";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, router } from "@/lib/trpc/trpc"; // Sesuaikan dengan lokasi setup tRPC Anda
 import { db } from "@/lib/db";
+import { gigs, categories, user, gigPackages } from "@/lib/db/schema";
 
 export const gigRouter = router({
+  // 1. Procedure untuk Mengambil Detail Gig Berdasarkan Slug
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
@@ -38,6 +39,8 @@ export const gigRouter = router({
 
       return gig ?? null;
     }),
+
+  // 2. Procedure Pencarian & Filter Gig (Advanced Search)
   search: publicProcedure
     .input(
       z.object({
@@ -53,10 +56,10 @@ export const gigRouter = router({
       const { q, categoryId, minPrice, maxPrice, page, limit } = input;
       const offset = (page - 1) * limit;
 
-      // 1. Filter WHERE Dinamis
+      // Filter WHERE Dinamis
       const whereConditions = [];
 
-      if (q) {
+      if (q && q !== "") {
         const searchTerm = `%${q}%`;
         whereConditions.push(
           or(
@@ -74,7 +77,7 @@ export const gigRouter = router({
       const whereClause =
         whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      // 2. Filter HAVING Dinamis
+      // Filter HAVING Dinamis (Untuk Agregasi Harga Paket Minimum)
       const havingConditions = [];
       if (minPrice !== undefined) {
         havingConditions.push(gte(sql`MIN(${gigPackages.price})`, minPrice));
@@ -85,7 +88,7 @@ export const gigRouter = router({
       const havingClause =
         havingConditions.length > 0 ? and(...havingConditions) : undefined;
 
-      // 3. Query Items Langsung (Presisi Type Inference Drizzle)
+      // Main Items Query
       const itemsQuery = db
         .select({
           id: gigs.id,
@@ -117,7 +120,7 @@ export const gigRouter = router({
         .limit(limit)
         .offset(offset);
 
-      // 4. Subquery khusus menghitung Total Rows terfilter
+      // Subquery Khusus Total Count Terfilter
       const countSubquery = db
         .select({ id: gigs.id })
         .from(gigs)
@@ -128,7 +131,7 @@ export const gigRouter = router({
         .having(havingClause)
         .as("count_subquery");
 
-      // 5. Eksekusi Paralel
+      // Eksekusi Paralel (Items & Count)
       const [items, totalResult] = await Promise.all([
         itemsQuery,
         db.select({ total: count() }).from(countSubquery),
