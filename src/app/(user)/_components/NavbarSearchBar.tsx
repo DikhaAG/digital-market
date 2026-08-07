@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, X, Loader2, ArrowRight, Tag } from "lucide-react";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { useDebounce } from "@/hooks/use-debounce";
 
 import { Input } from "@/components/ui/input";
