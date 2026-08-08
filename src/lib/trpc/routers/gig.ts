@@ -1,62 +1,40 @@
 import { z } from "zod";
-import { and, or, ilike, eq, gte, lte, sql, count, desc } from "drizzle-orm";
-import { publicProcedure, router } from "@/lib/trpc/trpc"; // Sesuaikan dengan lokasi setup tRPC Anda
+import {
+  and,
+  or,
+  ilike,
+  eq,
+  gte,
+  lte,
+  sql,
+  count,
+  desc,
+  asc,
+} from "drizzle-orm";
+import { publicProcedure, router } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
 import { gigs, categories, user, gigPackages } from "@/lib/db/schema";
 
 export const gigRouter = router({
-  // 1. Procedure untuk Mengambil Detail Gig Berdasarkan Slug
-  getBySlug: publicProcedure
-    .input(z.object({ slug: z.string() }))
-    .query(async ({ input }) => {
-      const gig = await db.query.gigs.findFirst({
-        where: {
-          slug: input.slug,
-        },
-        with: {
-          seller: true,
-          category: {
-            with: {
-              parent: true,
-            },
-          },
-          packages: {
-            with: {
-              featureValues: {
-                with: {
-                  feature: true,
-                },
-              },
-            },
-          },
-          options: {
-            with: {
-              attribute: true,
-            },
-          },
-        },
-      });
-
-      return gig ?? null;
-    }),
-
-  // 2. Procedure Pencarian & Filter Gig (Advanced Search)
   search: publicProcedure
     .input(
       z.object({
         q: z.string().trim().optional(),
-        categoryId: z.uuid().optional(),
+        categoryId: z.string().uuid().optional(),
         minPrice: z.number().min(0).optional(),
         maxPrice: z.number().min(0).optional(),
+        sortBy: z
+          .enum(["relevance", "newest", "price_asc", "price_desc"])
+          .default("relevance"),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(12),
       }),
     )
     .query(async ({ input }) => {
-      const { q, categoryId, minPrice, maxPrice, page, limit } = input;
+      const { q, categoryId, minPrice, maxPrice, sortBy, page, limit } = input;
       const offset = (page - 1) * limit;
 
-      // Filter WHERE Dinamis
+      // 1. Filter WHERE Dinamis
       const whereConditions = [];
 
       if (q && q !== "") {
@@ -77,7 +55,7 @@ export const gigRouter = router({
       const whereClause =
         whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      // Filter HAVING Dinamis (Untuk Agregasi Harga Paket Minimum)
+      // 2. Filter HAVING Dinamis (Agregasi Rentang Harga)
       const havingConditions = [];
       if (minPrice !== undefined) {
         havingConditions.push(gte(sql`MIN(${gigPackages.price})`, minPrice));
@@ -88,7 +66,25 @@ export const gigRouter = router({
       const havingClause =
         havingConditions.length > 0 ? and(...havingConditions) : undefined;
 
-      // Main Items Query
+      // 3. Dynamic Ordering
+      let orderByClause;
+      switch (sortBy) {
+        case "newest":
+          orderByClause = desc(gigs.createdAt);
+          break;
+        case "price_asc":
+          orderByClause = asc(sql`MIN(${gigPackages.price})`);
+          break;
+        case "price_desc":
+          orderByClause = desc(sql`MIN(${gigPackages.price})`);
+          break;
+        case "relevance":
+        default:
+          orderByClause = desc(gigs.createdAt);
+          break;
+      }
+
+      // 4. Main Query
       const itemsQuery = db
         .select({
           id: gigs.id,
@@ -116,11 +112,11 @@ export const gigRouter = router({
         .where(whereClause)
         .groupBy(gigs.id, user.id, categories.id)
         .having(havingClause)
-        .orderBy(desc(gigs.createdAt))
+        .orderBy(orderByClause)
         .limit(limit)
         .offset(offset);
 
-      // Subquery Khusus Total Count Terfilter
+      // 5. Count Subquery
       const countSubquery = db
         .select({ id: gigs.id })
         .from(gigs)
@@ -131,7 +127,6 @@ export const gigRouter = router({
         .having(havingClause)
         .as("count_subquery");
 
-      // Eksekusi Paralel (Items & Count)
       const [items, totalResult] = await Promise.all([
         itemsQuery,
         db.select({ total: count() }).from(countSubquery),
