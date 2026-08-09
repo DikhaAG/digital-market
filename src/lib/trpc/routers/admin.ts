@@ -1,6 +1,7 @@
+//src/lib/trpc/routers/admin.ts
 import { z } from "zod";
 import { and, count, eq, ilike } from "drizzle-orm";
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
 import {
   categories,
