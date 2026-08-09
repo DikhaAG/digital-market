@@ -20,7 +20,7 @@ export const gigRouter = router({
     .input(
       z.object({
         q: z.string().trim().optional(),
-        categoryId: z.string().uuid().optional(),
+        categorySlug: z.string().trim().optional().catch(undefined),
         minPrice: z.number().min(0).optional(),
         maxPrice: z.number().min(0).optional(),
         sortBy: z
@@ -31,7 +31,8 @@ export const gigRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const { q, categoryId, minPrice, maxPrice, sortBy, page, limit } = input;
+      const { q, categorySlug, minPrice, maxPrice, sortBy, page, limit } =
+        input;
       const offset = (page - 1) * limit;
 
       // 1. Filter WHERE Dinamis
@@ -48,8 +49,17 @@ export const gigRouter = router({
         );
       }
 
-      if (categoryId) {
-        whereConditions.push(eq(gigs.categoryId, categoryId));
+      if (categorySlug && categorySlug !== "") {
+        whereConditions.push(
+          or(
+            eq(categories.slug, categorySlug),
+            sql`EXISTS (
+              SELECT 1 FROM ${categories} AS parent_cat 
+              WHERE parent_cat.id = ${categories.parentId} 
+              AND parent_cat.slug = ${categorySlug}
+            )`,
+          ),
+        );
       }
 
       const whereClause =
