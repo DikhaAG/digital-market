@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { trpc } from "@/lib/trpc/client";
 import { gigFormSchema, type GigFormValues } from "@/lib/validations/gig";
@@ -29,7 +29,7 @@ const slugify = (str: string) =>
 
 interface GigFormDialogProps {
   gigId?: string;
-  trigger?: React.ReactNode;
+  trigger?: React.ReactElement;
 }
 
 export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
@@ -52,16 +52,15 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
       { enabled: open && !!gigId },
     );
 
-  // 2. React Hook Form Instance
+  // 2. React Hook Form Instance (Type Inference Otomatis dari Zod Resolver)
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
-    control,
     formState: { errors },
-  } = useForm<GigFormValues>({
+  } = useForm({
     resolver: zodResolver(gigFormSchema),
     defaultValues: {
       title: "",
@@ -71,7 +70,7 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
       attributeOptionIds: [],
       packages: [
         {
-          packageType: "basic",
+          packageType: "basic" as const,
           title: "Basic Pack",
           description: "Starter features",
           price: 25,
@@ -80,7 +79,7 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
           featureValues: [],
         },
         {
-          packageType: "standard",
+          packageType: "standard" as const,
           title: "Standard Pack",
           description: "Most popular choice",
           price: 50,
@@ -89,7 +88,7 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
           featureValues: [],
         },
         {
-          packageType: "premium",
+          packageType: "premium" as const,
           title: "Premium Pack",
           description: "Complete solution",
           price: 100,
@@ -101,12 +100,16 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
     },
   });
 
-  const selectedCategoryId = watch("categoryId");
-  const titleValue = watch("title");
+  // 3. Reactive Field Watching (Aman untuk React Compiler menggunakan `useWatch`)
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
+  const titleValue = useWatch({ control, name: "title" });
+  const attributeOptionIds =
+    useWatch({ control, name: "attributeOptionIds" }) ?? [];
+  const packagesWatch = useWatch({ control, name: "packages" }) ?? [];
 
   // Query Dynamic Meta Attributes & Features berdasarkan Kategori terpilih
   const { data: catMeta } = trpc.admin.getCategoryGigMeta.useQuery(
-    { categoryId: selectedCategoryId },
+    { categoryId: selectedCategoryId! },
     { enabled: !!selectedCategoryId },
   );
 
@@ -341,9 +344,9 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
                           </span>
                           <div className="flex flex-wrap gap-2">
                             {attr.options.map((opt) => {
-                              const currentOptions: string[] =
-                                watch("attributeOptionIds") || [];
-                              const isChecked = currentOptions.includes(opt.id);
+                              const isChecked = attributeOptionIds.includes(
+                                opt.id,
+                              );
 
                               return (
                                 <button
@@ -353,13 +356,13 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
                                     if (isChecked) {
                                       setValue(
                                         "attributeOptionIds",
-                                        currentOptions.filter(
+                                        attributeOptionIds.filter(
                                           (id) => id !== opt.id,
                                         ),
                                       );
                                     } else {
                                       setValue("attributeOptionIds", [
-                                        ...currentOptions,
+                                        ...attributeOptionIds,
                                         opt.id,
                                       ]);
                                     }
@@ -456,15 +459,14 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
                               <span className="text-[11px] font-bold text-muted-foreground block">
                                 Checklist Fitur Paket:
                               </span>
-                              {catMeta.packageFeatures.map((feat, fIdx) => {
-                                const currentFV = watch(
-                                  `packages.${pIdx}.featureValues`,
-                                );
-                                const existIdx = currentFV?.findIndex(
+                              {catMeta.packageFeatures.map((feat) => {
+                                const currentFV =
+                                  packagesWatch[pIdx]?.featureValues ?? [];
+                                const existIdx = currentFV.findIndex(
                                   (fv) => fv.packageFeatureId === feat.id,
                                 );
                                 const isIncluded =
-                                  existIdx !== undefined && existIdx !== -1
+                                  existIdx !== -1
                                     ? currentFV[existIdx]?.isIncluded
                                     : false;
 
@@ -481,16 +483,13 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
                                         type="checkbox"
                                         checked={isIncluded ?? false}
                                         onChange={(e) => {
-                                          const updatedFV = [
-                                            ...(currentFV || []),
-                                          ];
+                                          const updatedFV = [...currentFV];
                                           const targetVal = e.target.checked;
-                                          if (
-                                            existIdx !== undefined &&
-                                            existIdx !== -1
-                                          ) {
-                                            updatedFV[existIdx].isIncluded =
-                                              targetVal;
+                                          if (existIdx !== -1) {
+                                            updatedFV[existIdx] = {
+                                              ...updatedFV[existIdx],
+                                              isIncluded: targetVal,
+                                            };
                                           } else {
                                             updatedFV.push({
                                               packageFeatureId: feat.id,
@@ -509,23 +508,19 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
                                       <Input
                                         placeholder={feat.type}
                                         value={
-                                          existIdx !== undefined &&
                                           existIdx !== -1
                                             ? (currentFV[existIdx]?.value ?? "")
                                             : ""
                                         }
                                         onChange={(e) => {
-                                          const updatedFV = [
-                                            ...(currentFV || []),
-                                          ];
+                                          const updatedFV = [...currentFV];
                                           const val = e.target.value;
-                                          if (
-                                            existIdx !== undefined &&
-                                            existIdx !== -1
-                                          ) {
-                                            updatedFV[existIdx].value = val;
-                                            updatedFV[existIdx].isIncluded =
-                                              !!val;
+                                          if (existIdx !== -1) {
+                                            updatedFV[existIdx] = {
+                                              ...updatedFV[existIdx],
+                                              value: val,
+                                              isIncluded: !!val,
+                                            };
                                           } else {
                                             updatedFV.push({
                                               packageFeatureId: feat.id,
@@ -563,7 +558,7 @@ export function GigFormDialog({ gigId, trigger }: GigFormDialogProps) {
               </Button>
               <Button
                 type="submit"
-                className="font-bold min-w-[140px]"
+                className="font-bold min-w-35"
                 disabled={upsertMutation.isPending}
               >
                 {upsertMutation.isPending ? (
