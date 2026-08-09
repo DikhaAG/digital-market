@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "@/lib/trpc/routers/_app"; // Sesuaikan path AppRouter Anda
+import type { AppRouter } from "@/server/routers/_app"; // Sesuaikan path AppRouter Anda
 
 // Inference tipe data langsung dari tRPC Router
 type RouterOutput = inferRouterOutputs<AppRouter>;

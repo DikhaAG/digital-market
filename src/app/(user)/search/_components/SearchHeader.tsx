@@ -8,7 +8,12 @@ export function SearchHeader({ query }: SearchHeaderProps) {
       <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
         {query ? (
           <span>
-            Results for <span className="text-primary">"{query}"</span>
+            Results for{" "}
+            <span className="text-primary">
+              {`&quot;`}
+              {query}
+              {`&quot;`}
+            </span>
           </span>
         ) : (
           "Explore All Services"

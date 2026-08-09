@@ -1,6 +1,9 @@
+// src/app/(user)/gigs/[slug]/_components/PackageTabs.tsx
 "use client";
 
 import { useState } from "react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/routers/_app";
 import {
   Clock,
   RotateCcw,
@@ -11,26 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export interface PackageFeatureValue {
-  isIncluded: boolean | null;
-  value: string | null;
-  feature: {
-    id: string;
-    name: string;
-    type: "boolean" | "text" | "number";
-  };
-}
-
-export interface GigPackage {
-  id: string;
-  packageType: "basic" | "standard" | "premium";
-  title: string;
-  description: string | null;
-  price: number;
-  deliveryTimeDays: number;
-  revisions: number;
-  featureValues?: PackageFeatureValue[];
-}
+// Infer tipe dari output tRPC router secara otomatis
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+type GigGetBySlugOutput = NonNullable<RouterOutputs["gig"]["getBySlug"]>;
+export type GigPackage = GigGetBySlugOutput["packages"][number];
 
 interface PackageTabsProps {
   packages: GigPackage[];
@@ -38,10 +25,13 @@ interface PackageTabsProps {
 }
 
 export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
-  // Sort paket agar urutannya selalu Basic -> Standard -> Premium
-  const orderMap = { basic: 1, standard: 2, premium: 3 };
+  const orderMap: Record<string, number> = {
+    basic: 1,
+    standard: 2,
+    premium: 3,
+  };
   const sortedPackages = [...packages].sort(
-    (a, b) => orderMap[a.packageType] - orderMap[b.packageType],
+    (a, b) => (orderMap[a.packageType] ?? 0) - (orderMap[b.packageType] ?? 0),
   );
 
   const [activeType, setActiveType] = useState<string>(
@@ -62,7 +52,6 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
 
   return (
     <div className="border border-border rounded-2xl bg-card shadow-sm overflow-hidden sticky top-24">
-      {/* Header Selector Tabs */}
       <Tabs value={activeType} onValueChange={setActiveType} className="w-full">
         <TabsList className="w-full grid grid-cols-3 h-12 bg-muted/50 p-1 rounded-none border-b border-border">
           {sortedPackages.map((pkg) => (
@@ -77,9 +66,7 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
         </TabsList>
       </Tabs>
 
-      {/* Detail Konten Paket Aktif */}
       <div className="p-6 space-y-6">
-        {/* Harga & Judul Paket */}
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
             <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
@@ -96,7 +83,6 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
           )}
         </div>
 
-        {/* Waktu Pengiriman & Revisi */}
         <div className="flex items-center gap-6 text-xs font-semibold text-foreground pt-2 border-t border-border/50">
           <div className="flex items-center gap-1.5">
             <Clock className="h-4 w-4 text-primary" />
@@ -112,7 +98,6 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
           </div>
         </div>
 
-        {/* Fitur Terintegrasi Checklist */}
         {selectedPackage.featureValues &&
           selectedPackage.featureValues.length > 0 && (
             <div className="space-y-2.5 pt-2">
@@ -121,7 +106,8 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
               </p>
               <ul className="space-y-2 text-xs">
                 {selectedPackage.featureValues.map((fv) => {
-                  if (!fv.isIncluded && !fv.value) return null;
+                  // Guard jika feature bernilai null atau tidak di-include
+                  if (!fv.feature || (!fv.isIncluded && !fv.value)) return null;
                   return (
                     <li
                       key={fv.feature.id}
@@ -139,7 +125,6 @@ export function PackageTabs({ packages, sellerName }: PackageTabsProps) {
             </div>
           )}
 
-        {/* Tombol Aksi Pesan */}
         <div className="space-y-2 pt-2">
           <Button className="w-full h-11 font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer flex items-center justify-center gap-2">
             <span>Pesan Sekarang (${selectedPackage.price})</span>

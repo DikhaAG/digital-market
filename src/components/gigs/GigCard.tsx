@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "@/lib/trpc/routers/_app";
+import { AppRouter } from "@/server/routers/_app";
 
 // Ekstrak tipe data item secara otomatis dari output router tRPC
 type RouterOutputs = inferRouterOutputs<AppRouter>;

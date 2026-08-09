@@ -1,4 +1,4 @@
-import { cache } from "react";
+// src/app/(user)/gigs/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   User as UserIcon,
 } from "lucide-react";
-import { db } from "@/lib/db";
+import { trpcServer } from "@/lib/trpc/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PackageTabs } from "./_components/PackageTabs";
@@ -20,40 +20,14 @@ interface PageProps {
   }>;
 }
 
-/**
- * React cache() memastikan query Drizzle hanya dipanggil 1x
- * meskipun dieksekusi di generateMetadata dan GigDetailPage secara bersamaan.
- */
-const getGigBySlug = cache(async (slug: string) => {
-  return await db.query.gigs.findFirst({
-    where: (gigs, { eq }) => eq(gigs.slug, slug),
-    with: {
-      seller: true,
-      category: {
-        with: {
-          parent: true,
-        },
-      },
-      packages: {
-        with: {
-          featureValues: {
-            with: {
-              feature: true,
-            },
-          },
-        },
-      },
-    },
-  });
-});
-
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const gig = await getGigBySlug(slug);
+  const trpc = await trpcServer();
+  const gig = await trpc.gig.getBySlug({ slug });
 
-  if (!gig) {
+  if (!gig || !gig.seller) {
     return { title: "Gig Not Found" };
   }
 
@@ -72,9 +46,11 @@ export async function generateMetadata({
 
 export default async function GigDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const gig = await getGigBySlug(slug);
+  const trpc = await trpcServer();
+  const gig = await trpc.gig.getBySlug({ slug });
 
-  if (!gig) {
+  // Type Guard: jika gig, seller, atau category tidak ditemukan
+  if (!gig || !gig.seller || !gig.category) {
     notFound();
   }
 
@@ -82,7 +58,7 @@ export default async function GigDetailPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* 1. Breadcrumb Navigation */}
+      {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium">
           <li>
@@ -115,17 +91,14 @@ export default async function GigDetailPage({ params }: PageProps) {
         </ol>
       </nav>
 
-      {/* Layout Utam: Grid 12 Kolom */}
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-        {/* Kolom Kiri: Detail Utama Gig & Seller (8 Kolom) */}
         <div className="lg:col-span-8 space-y-8">
-          {/* Title & Seller Header */}
           <div className="space-y-4">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground leading-tight">
               {gig.title}
             </h1>
 
-            {/* Profil Ringkas Seller */}
             <div className="flex items-center gap-3 pt-2">
               <Avatar className="h-12 w-12 border border-border">
                 <AvatarImage src={seller.image ?? ""} alt={seller.name} />
@@ -157,8 +130,7 @@ export default async function GigDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Cover Image Banner */}
-          <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-muted border border-border shadow-sm">
+          <div className="relative aspect-16/10 w-full rounded-2xl overflow-hidden bg-muted border border-border shadow-sm">
             {gig.coverImage ? (
               <Image
                 src={gig.coverImage}
@@ -175,7 +147,6 @@ export default async function GigDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Deskripsi "About This Gig" */}
           <section className="space-y-4 pt-4 border-t border-border">
             <h2 className="text-xl font-extrabold text-foreground tracking-tight">
               Tentang Layanan Ini
@@ -185,7 +156,6 @@ export default async function GigDetailPage({ params }: PageProps) {
             </div>
           </section>
 
-          {/* Profil Lengkap Seller */}
           <section className="space-y-4 p-6 rounded-2xl border border-border bg-card">
             <h2 className="text-lg font-bold text-foreground">
               Tentang Penjual
@@ -215,7 +185,6 @@ export default async function GigDetailPage({ params }: PageProps) {
           </section>
         </div>
 
-        {/* Kolom Kanan: Pricing & Packages Sticky Card (4 Kolom) */}
         <div className="lg:col-span-4">
           <PackageTabs packages={packages} sellerName={seller.name} />
         </div>
