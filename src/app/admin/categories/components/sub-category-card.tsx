@@ -6,30 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { PackageFeaturesTab } from "./package-features-tab";
 import { FilterAttributesTab } from "./filter-attributes-tab";
-import { trpc } from "@/lib/trpc/client";
-import { toast } from "sonner";
-
-import type { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "@/server/routers/_app";
-
-// Inferensi tipe data sub-kategori dari return value router tRPC 'admin.getCategoryTree'
-type RouterOutput = inferRouterOutputs<AppRouter>;
-export type SubCategoryItem =
-  RouterOutput["admin"]["getCategoryTree"][number]["subcategories"][number];
+import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
+import { type SubCategoryItem } from "../_schemas/category-admin.schema";
 
 interface SubCategoryCardProps {
   sub: SubCategoryItem;
 }
 
 export function SubCategoryCard({ sub }: SubCategoryCardProps) {
-  const utils = trpc.useUtils();
-  const deleteCategoryMutation = trpc.admin.deleteCategory.useMutation({
-    onSuccess: () => {
-      toast.success("Sub-kategori berhasil dihapus");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const { trpc, createOptions } = useCategoryTreeMutation();
+  const deleteMutation = trpc.admin.deleteCategory.useMutation(
+    createOptions({ successMessage: "Sub-kategori berhasil dihapus" }),
+  );
 
   return (
     <div className="p-4 sm:p-5 rounded-xl border border-border/80 bg-background space-y-4">
@@ -44,15 +32,13 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
             {sub.gigs.length} Gigs
           </Badge>
         </div>
-
         <DeleteConfirmDialog
           title={`Hapus sub-kategori "${sub.name}"?`}
           description="Tindakan ini tidak dapat dibatalkan."
-          onConfirm={() => deleteCategoryMutation.mutate({ id: sub.id })}
-          isPending={deleteCategoryMutation.isPending}
+          onConfirm={() => deleteMutation.mutate({ id: sub.id })}
+          isPending={deleteMutation.isPending}
         />
       </div>
-
       <Tabs defaultValue="features" className="w-full">
         <TabsList className="bg-muted/60 h-9 p-1">
           <TabsTrigger
@@ -70,7 +56,6 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
             {sub.attributes.length})
           </TabsTrigger>
         </TabsList>
-
         <TabsContent value="features">
           <PackageFeaturesTab
             categoryId={sub.id}

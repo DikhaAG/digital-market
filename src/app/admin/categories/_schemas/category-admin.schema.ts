@@ -1,5 +1,8 @@
 import { z } from "zod";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/routers/_app";
 
+/** Utility helper untuk konversi string ke URL Slug */
 export const slugify = (str: string) =>
   str
     .toLowerCase()
@@ -8,26 +11,48 @@ export const slugify = (str: string) =>
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+// ============================================================================
+// CENTRALIZED TRPC ROUTER TYPES
+// ============================================================================
+type RouterOutput = inferRouterOutputs<AppRouter>;
+export type ParentCategoryItem =
+  RouterOutput["admin"]["getCategoryTree"][number];
+export type SubCategoryItem = ParentCategoryItem["subcategories"][number];
+export type PackageFeatureItem = SubCategoryItem["packageFeatures"][number];
+export type AttributeItem = SubCategoryItem["attributes"][number];
+export type AttributeOptionItem = AttributeItem["options"][number];
+
+// ============================================================================
+// CATEGORY SCHEMAS & INPUT TYPES
+// ============================================================================
 export const parentCategorySchema = z.object({
-  name: z.string().min(2, "Nama minimal 2 karakter"),
-  icon: z.string().optional(),
+  name: z.string().min(2, { message: "Nama minimal 2 karakter" }),
+  icon: z.string().optional().nullable(),
+  image: z
+    .url({ message: "URL Gambar CDN tidak valid" })
+    .optional()
+    .or(z.literal(""))
+    .nullable(),
 });
 
-export const subCategorySchema = z.object({
-  name: z.string().min(2, "Nama sub-kategori minimal 2 karakter"),
+export const subCategorySchema = parentCategorySchema.extend({
+  parentId: z.uuid({ message: "Parent Category ID tidak valid" }).optional(),
 });
 
 export const packageFeatureSchema = z.object({
-  name: z.string().min(2, "Nama fitur minimal 2 karakter"),
-  type: z.enum(["boolean", "text", "number"]),
+  name: z.string().min(2, { message: "Nama fitur minimal 2 karakter" }),
+  type: z.enum(["boolean", "text", "number"], {
+    message: "Pilih tipe fitur yang valid",
+  }),
 });
 
 export const attributeSchema = z.object({
-  name: z.string().min(2, "Nama atribut minimal 2 karakter"),
+  name: z.string().min(2, { message: "Nama atribut minimal 2 karakter" }),
 });
 
 export const attributeOptionSchema = z.object({
-  label: z.string().min(1, "Label tidak boleh kosong"),
+  label: z.string().min(1, { message: "Label opsi tidak boleh kosong" }),
+  value: z.string().min(1, { message: "Nilai value tidak boleh kosong" }),
 });
 
 export type ParentCategoryInput = z.infer<typeof parentCategorySchema>;

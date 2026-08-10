@@ -36,7 +36,6 @@ export function FilterAttributesTab({
   attributes: Attribute[];
 }) {
   const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -65,7 +64,7 @@ export function FilterAttributesTab({
 
   return (
     <div className="pt-3 space-y-4">
-      {/* Add Attribute Form */}
+      {/* Form Tambah Atribut */}
       <form
         onSubmit={handleSubmit((data) =>
           createAttrMutation.mutate({
@@ -104,7 +103,7 @@ export function FilterAttributesTab({
         )}
       </form>
 
-      {/* Grid List Attributes */}
+      {/* Grid Daftar Atribut */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
         {attributes.map((attr) => (
           <div
@@ -117,7 +116,7 @@ export function FilterAttributesTab({
                 <span className="font-bold text-xs text-foreground">
                   {attr.name}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground font-mono">
                   ({attr.slug})
                 </span>
               </div>
@@ -125,13 +124,11 @@ export function FilterAttributesTab({
                 type="button"
                 onClick={() => deleteAttrMutation.mutate({ id: attr.id })}
                 disabled={deleteAttrMutation.isPending}
-                className="text-muted-foreground hover:text-destructive p-1"
+                className="text-muted-foreground hover:text-destructive p-1 transition-colors"
               >
                 <Trash2 className="h-3 w-3" />
               </button>
             </div>
-
-            {/* List Badges & Option Form */}
             <AttributeOptionsList
               attributeId={attr.id}
               options={attr.options}
@@ -151,7 +148,12 @@ function AttributeOptionsList({
   options: AttributeOption[];
 }) {
   const utils = trpc.useUtils();
-  const { register, handleSubmit, reset } = useForm<AttributeOptionInput>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AttributeOptionInput>({
     resolver: zodResolver(attributeOptionSchema),
   });
 
@@ -185,7 +187,7 @@ function AttributeOptionsList({
               type="button"
               onClick={() => deleteOptionMutation.mutate({ id: opt.id })}
               disabled={deleteOptionMutation.isPending}
-              className="text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive transition-colors"
             >
               <X className="h-2.5 w-2.5" />
             </button>
@@ -201,26 +203,33 @@ function AttributeOptionsList({
             value: slugify(data.label),
           }),
         )}
-        className="flex items-center gap-1.5 pt-1"
+        className="space-y-1 pt-1"
       >
-        <Input
-          placeholder="+ Opsi (misal: Python)"
-          {...register("label")}
-          className="h-7 text-[11px] px-2"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          variant="secondary"
-          className="h-7 text-[11px] px-2 shrink-0 font-semibold"
-          disabled={createOptionMutation.isPending}
-        >
-          {createOptionMutation.isPending ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            "Tambah"
-          )}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Input
+            placeholder="+ Opsi (misal: Python)"
+            {...register("label")}
+            className="h-7 text-[11px] px-2"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            className="h-7 text-[11px] px-2 shrink-0 font-semibold"
+            disabled={createOptionMutation.isPending}
+          >
+            {createOptionMutation.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              "Tambah"
+            )}
+          </Button>
+        </div>
+        {errors.label && (
+          <p className="text-[10px] text-destructive font-medium">
+            {errors.label.message}
+          </p>
+        )}
       </form>
     </div>
   );

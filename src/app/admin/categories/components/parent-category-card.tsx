@@ -3,32 +3,20 @@
 import { Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
-import { CreateSubCategoryDialog } from "./category-dialogs";
+import { CreateSubCategoryDialog } from "./dialogs";
 import { SubCategoryCard } from "./sub-category-card";
-import { trpc } from "@/lib/trpc/client";
-import { toast } from "sonner";
-
-import type { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "@/server/routers/_app";
-
-// Infeferensi tipe otomatis dari output router tRPC 'admin.getCategoryTree'
-type RouterOutput = inferRouterOutputs<AppRouter>;
-export type ParentCategoryItem =
-  RouterOutput["admin"]["getCategoryTree"][number];
+import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
+import { type ParentCategoryItem } from "../_schemas/category-admin.schema";
 
 interface ParentCategoryCardProps {
   parent: ParentCategoryItem;
 }
 
 export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
-  const utils = trpc.useUtils();
-  const deleteCategoryMutation = trpc.admin.deleteCategory.useMutation({
-    onSuccess: () => {
-      toast.success("Kategori utama berhasil dihapus");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const { trpc, createOptions } = useCategoryTreeMutation();
+  const deleteMutation = trpc.admin.deleteCategory.useMutation(
+    createOptions({ successMessage: "Kategori utama berhasil dihapus" }),
+  );
 
   return (
     <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
@@ -42,7 +30,7 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
               <h3 className="font-black text-foreground text-base sm:text-lg">
                 {parent.name}
               </h3>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs font-mono">
                 {parent.slug}
               </Badge>
             </div>
@@ -51,7 +39,6 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
             </p>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
           <CreateSubCategoryDialog
             parentId={parent.id}
@@ -60,12 +47,11 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
           <DeleteConfirmDialog
             title={`Hapus kategori "${parent.name}"?`}
             description="Seluruh sub-kategori, atribut filter, dan fitur di dalamnya akan ikut terhapus secara permanen."
-            onConfirm={() => deleteCategoryMutation.mutate({ id: parent.id })}
-            isPending={deleteCategoryMutation.isPending}
+            onConfirm={() => deleteMutation.mutate({ id: parent.id })}
+            isPending={deleteMutation.isPending}
           />
         </div>
       </div>
-
       <div className="p-4 sm:p-6 space-y-6">
         {parent.subcategories.length === 0 ? (
           <p className="text-xs text-muted-foreground italic text-center py-4">

@@ -30,7 +30,6 @@ export function PackageFeaturesTab({
   features,
 }: PackageFeaturesTabProps) {
   const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -79,7 +78,7 @@ export function PackageFeaturesTab({
             name="type"
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger className="h-8 text-xs w-[140px]">
+                <SelectTrigger className="h-8 text-xs w-[160px]">
                   <SelectValue placeholder="Pilih tipe" />
                 </SelectTrigger>
                 <SelectContent>
