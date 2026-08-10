@@ -23,7 +23,7 @@ export default function GigsAdminPage() {
       sortOrder: "desc",
     },
     {
-      staleTime: 1000 * 60 * 3, // Cache data selama 3 menit
+      staleTime: 1000 * 60 * 3, // Cache data selama 3 menit[cite: 23]
       refetchOnWindowFocus: false,
     },
   );
@@ -54,7 +54,7 @@ export default function GigsAdminPage() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setPage(1); // Reset ke halaman pertama saat mencari
+              setPage(1); // Reset otomatis ke halaman pertama saat mencari[cite: 23]
             }}
           />
         </div>
@@ -87,7 +87,7 @@ export default function GigsAdminPage() {
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex items-center justify-between border-t border-border/80 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-border/80 pt-4 gap-3">
             <p className="text-xs text-muted-foreground">
               Menampilkan{" "}
               <span className="font-bold text-foreground">
@@ -97,7 +97,7 @@ export default function GigsAdminPage() {
               <span className="font-bold text-foreground">{data.total}</span>{" "}
               Total Gig
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <Button
                 size="sm"
                 variant="outline"

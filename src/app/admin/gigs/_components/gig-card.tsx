@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { User, Tag, DollarSign, Calendar } from "lucide-react";
+import { User, Tag, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "@/app/admin/categories/components/delete-confirm-dialog";
 import { UpsertGigDialog } from "./dialogs/upsert-gig-dialog";
@@ -22,8 +22,8 @@ export function GigCard({ gig }: GigCardProps) {
 
   return (
     <div className="p-4 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-border transition-all space-y-3 flex flex-col justify-between">
-      <div className="space-y-3">
-        {/* Top Header Image & Category */}
+      <div className="space-y-3 min-w-0">
+        {/* Header Image & Category Badge */}
         <div className="relative h-36 w-full rounded-xl overflow-hidden bg-muted">
           {gig.coverImage ? (
             <Image
@@ -31,16 +31,21 @@ export function GigCard({ gig }: GigCardProps) {
               alt={gig.title}
               fill
               className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground font-medium">
               Tidak Ada Gambar
             </div>
           )}
-          <Badge className="absolute top-2.5 left-2.5 bg-background/90 text-foreground backdrop-blur-xs text-[10px] font-bold">
-            <Tag className="h-3 w-3 mr-1 text-primary inline" />
-            {gig.category.name}
-          </Badge>
+          {gig.category && (
+            <Badge className="absolute top-2.5 left-2.5 bg-background/90 text-foreground backdrop-blur-xs text-[10px] font-bold shadow-xs">
+              <Tag className="h-3 w-3 mr-1 text-primary inline" />
+              <span className="truncate max-w-[120px]">
+                {gig.category.name}
+              </span>
+            </Badge>
+          )}
         </div>
 
         {/* Title & Slug */}
@@ -54,14 +59,16 @@ export function GigCard({ gig }: GigCardProps) {
         </div>
       </div>
 
-      {/* Footer Info & Action Buttons */}
-      <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+      {/* Footer Details & Action Buttons */}
+      <div className="pt-2.5 border-t border-border/50 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
-          <div className="flex items-center gap-1 truncate">
+          <div className="flex items-center gap-1 min-w-0">
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="truncate font-medium">{gig.seller.name}</span>
+            <span className="truncate font-medium max-w-[90px]">
+              {gig.seller?.name ?? "Seller N/A"}
+            </span>
           </div>
-          <span>•</span>
+          <span className="shrink-0">•</span>
           <div className="flex items-center font-bold text-foreground shrink-0">
             <DollarSign className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
             <span>{startingPrice}</span>

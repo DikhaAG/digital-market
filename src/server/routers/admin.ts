@@ -28,7 +28,9 @@ export const adminRouter = router({
   // SECTION 1: GIG MANAGEMENT
   // --------------------------------------------------------------------------
   getCategoryGigMeta: adminProcedure
-    .input(z.object({ categoryId: z.uuid() }))
+    .input(
+      z.object({ categoryId: z.string().min(1, "Category ID wajib diisi") }),
+    )
     .query(async ({ input }) => {
       const categoryData = await db.query.categories.findFirst({
         where: { id: input.categoryId },
@@ -39,7 +41,6 @@ export const adminRouter = router({
       });
       return categoryData ?? { attributes: [], packageFeatures: [] };
     }),
-
   getGigDetail: adminProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
@@ -91,10 +92,15 @@ export const adminRouter = router({
 
   getAllSellers: adminProcedure.query(async () => {
     return await db.query.user.findMany({
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+      },
       orderBy: (u, { asc }) => [asc(u.name)],
     });
   }),
-
   // --------------------------------------------------------------------------
   // SECTION 2: CATEGORY MANAGEMENT
   // --------------------------------------------------------------------------
