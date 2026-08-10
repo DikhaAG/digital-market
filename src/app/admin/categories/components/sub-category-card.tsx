@@ -30,7 +30,7 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
           </span>
           <span className="text-xs text-muted-foreground">({sub.slug})</span>
           <Badge variant="secondary" className="text-[10px]">
-            {sub.gigs.length} Gigs
+            {sub.gigCount ?? 0} Gigs
           </Badge>
         </div>
 

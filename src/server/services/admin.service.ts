@@ -1,8 +1,9 @@
 // src/server/services/admin.service.ts
 
-import { and, count, eq, ilike } from "drizzle-orm";
+import { and, count, eq, ilike, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  categories,
   gigs,
   gigAttributeOptions,
   gigPackages,
@@ -13,9 +14,6 @@ import { GigFormValues } from "@/lib/validations/gig";
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export class AdminService {
-  /**
-   * mengambil Tree Kategori dengan Column Projection (Fast Fetching)
-   */
   static async getCategoryTree() {
     return await db.query.categories.findMany({
       where: { parentId: { isNull: true } },
@@ -36,6 +34,13 @@ export class AdminService {
             icon: true,
             image: true,
           },
+          extras: {
+            gigCount: sql<number>`(
+              SELECT COUNT(*)::int 
+              FROM ${gigs} 
+              WHERE ${gigs.categoryId} = ${categories.id}
+            )`,
+          },
           with: {
             attributes: {
               columns: { id: true, categoryId: true, name: true, slug: true },
@@ -53,7 +58,6 @@ export class AdminService {
             packageFeatures: {
               columns: { id: true, categoryId: true, name: true, type: true },
             },
-            gigs: { columns: { id: true } },
           },
         },
         attributes: {
@@ -72,7 +76,6 @@ export class AdminService {
         packageFeatures: {
           columns: { id: true, categoryId: true, name: true, type: true },
         },
-        gigs: { columns: { id: true } },
       },
       orderBy: (cat, { asc }) => [asc(cat.name)],
     });
@@ -131,7 +134,6 @@ export class AdminService {
       await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
 
       if (input.packages.length > 0) {
-        // Bulk Insert Paket sekaligus
         const insertedPackages = await tx
           .insert(gigPackages)
           .values(
@@ -150,7 +152,6 @@ export class AdminService {
             packageType: gigPackages.packageType,
           });
 
-        // Map ID paket yang baru dimasukkan ke Feature Values
         const featureValuesToInsert = input.packages.flatMap((pkgInput) => {
           const matchedPkg = insertedPackages.find(
             (p) => p.packageType === pkgInput.packageType,
@@ -165,7 +166,6 @@ export class AdminService {
           }));
         });
 
-        // Bulk Insert Feature Values sekaligus
         if (featureValuesToInsert.length > 0) {
           await tx
             .insert(gigPackageFeatureValues)

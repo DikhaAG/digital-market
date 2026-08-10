@@ -155,7 +155,7 @@ export const adminRouter = router({
   createAttribute: adminProcedure
     .input(
       z.object({
-        categoryId: z.uuid(),
+        categoryId: z.string().min(1, { message: "ID Kategori wajib diisi" }),
         name: z.string().min(2),
         slug: z.string().min(2),
       }),
@@ -182,7 +182,7 @@ export const adminRouter = router({
   createAttributeOption: adminProcedure
     .input(
       z.object({
-        attributeId: z.uuid(),
+        attributeId: z.string().min(1, { message: "ID Atribut wajib diisi" }),
         label: z.string().min(1),
         value: z.string().min(1),
       }),
@@ -214,7 +214,7 @@ export const adminRouter = router({
   addPackageFeature: adminProcedure
     .input(
       z.object({
-        categoryId: z.uuid(),
+        categoryId: z.string().min(1, { message: "ID Kategori wajib diisi" }),
         name: z.string().min(2),
         type: z.enum(["boolean", "text", "number"]),
       }),
