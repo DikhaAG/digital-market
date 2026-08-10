@@ -1,9 +1,9 @@
-//src/lib/validations/gig.ts
+// src/lib/validations/gig.ts
 import { z } from "zod";
 
 export const packageFeatureValueSchema = z.object({
   packageFeatureId: z.uuid(),
-  isIncluded: z.boolean().default(false),
+  isIncluded: z.boolean(),
   value: z.string().optional().nullable(),
 });
 
@@ -25,7 +25,7 @@ export const gigFormSchema = z.object({
   slug: z.string().min(3, "Slug minimal 3 karakter"),
   about: z.string().min(10, "Deskripsi minimal 10 karakter").optional(),
   coverImage: z.url("URL Gambar tidak valid").optional().or(z.literal("")),
-  attributeOptionIds: z.array(z.uuid()).default([]),
+  attributeOptionIds: z.array(z.uuid()),
   packages: z
     .array(gigPackageSchema)
     .min(1, "Minimal harus mengisi paket Basic"),

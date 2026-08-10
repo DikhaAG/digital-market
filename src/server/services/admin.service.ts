@@ -231,7 +231,12 @@ export class AdminService {
       with: {
         seller: { columns: { id: true, name: true, image: true } },
         category: { columns: { id: true, name: true, slug: true } },
-        packages: { columns: { id: true, packageType: true, price: true } },
+        gigAttributes: true, // 👈 Tambahkan relasi ini
+        packages: {
+          with: {
+            featureValues: true, // 👈 Sertakan feature values dan kolom lengkap package
+          },
+        },
       },
     });
 
