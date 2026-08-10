@@ -55,6 +55,10 @@ export const attributeOptionSchema = z.object({
   value: z.string().min(1, { message: "Nilai value tidak boleh kosong" }),
 });
 
+export const attributeOptionFormSchema = z.object({
+  label: z.string().min(1, { message: "Label opsi tidak boleh kosong" }),
+});
+
 export const updateCategorySchema = z.object({
   id: z.string().min(1, { message: "ID Kategori harus berupa UUID valid" }),
   name: z.string().min(2, { message: "Nama minimal 2 karakter" }),
@@ -73,3 +77,6 @@ export type SubCategoryInput = z.infer<typeof subCategorySchema>;
 export type PackageFeatureInput = z.infer<typeof packageFeatureSchema>;
 export type AttributeInput = z.infer<typeof attributeSchema>;
 export type AttributeOptionInput = z.infer<typeof attributeOptionSchema>;
+export type AttributeOptionFormInput = z.infer<
+  typeof attributeOptionFormSchema
+>;

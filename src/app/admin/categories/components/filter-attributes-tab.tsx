@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   attributeSchema,
-  attributeOptionSchema,
+  attributeOptionFormSchema,
   slugify,
   type AttributeInput,
-  type AttributeOptionInput,
+  type AttributeOptionFormInput,
 } from "../_schemas/category-admin.schema";
 
 interface AttributeOption {
@@ -36,6 +36,7 @@ export function FilterAttributesTab({
   attributes: Attribute[];
 }) {
   const utils = trpc.useUtils();
+
   const {
     register,
     handleSubmit,
@@ -105,36 +106,49 @@ export function FilterAttributesTab({
 
       {/* Grid Daftar Atribut */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-        {attributes.map((attr) => (
-          <div
-            key={attr.id}
-            className="p-3 rounded-lg border border-border bg-card space-y-2.5"
-          >
-            <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <div className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-primary" />
-                <span className="font-bold text-xs text-foreground">
-                  {attr.name}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  ({attr.slug})
-                </span>
+        {attributes.map((attr) => {
+          // Check jika mutasi delete spesifik untuk ID item ini
+          const isDeletingThisAttr =
+            deleteAttrMutation.isPending &&
+            deleteAttrMutation.variables?.id === attr.id;
+
+          return (
+            <div
+              key={attr.id}
+              className="p-3 rounded-lg border border-border bg-card space-y-2.5"
+            >
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-bold text-xs text-foreground">
+                    {attr.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    ({attr.slug})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Hapus atribut ${attr.name}`}
+                  onClick={() => deleteAttrMutation.mutate({ id: attr.id })}
+                  disabled={isDeletingThisAttr}
+                  className="text-muted-foreground hover:text-destructive p-1 transition-colors disabled:opacity-50"
+                >
+                  {isDeletingThisAttr ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3" />
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => deleteAttrMutation.mutate({ id: attr.id })}
-                disabled={deleteAttrMutation.isPending}
-                className="text-muted-foreground hover:text-destructive p-1 transition-colors"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
+
+              <AttributeOptionsList
+                attributeId={attr.id}
+                options={attr.options}
+              />
             </div>
-            <AttributeOptionsList
-              attributeId={attr.id}
-              options={attr.options}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -148,13 +162,15 @@ function AttributeOptionsList({
   options: AttributeOption[];
 }) {
   const utils = trpc.useUtils();
+
+  // Gunakan Schema Khusus Form UI
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<AttributeOptionInput>({
-    resolver: zodResolver(attributeOptionSchema),
+  } = useForm<AttributeOptionFormInput>({
+    resolver: zodResolver(attributeOptionFormSchema),
   });
 
   const createOptionMutation = trpc.admin.createAttributeOption.useMutation({
@@ -176,31 +192,44 @@ function AttributeOptionsList({
 
   return (
     <div className="space-y-2">
+      {/* List Badge Opsi */}
       <div className="flex flex-wrap gap-1.5">
-        {options.map((opt) => (
-          <span
-            key={opt.id}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium text-foreground"
-          >
-            {opt.label}
-            <button
-              type="button"
-              onClick={() => deleteOptionMutation.mutate({ id: opt.id })}
-              disabled={deleteOptionMutation.isPending}
-              className="text-muted-foreground hover:text-destructive transition-colors"
+        {options.map((opt) => {
+          const isDeletingThisOpt =
+            deleteOptionMutation.isPending &&
+            deleteOptionMutation.variables?.id === opt.id;
+
+          return (
+            <span
+              key={opt.id}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium text-foreground"
             >
-              <X className="h-2.5 w-2.5" />
-            </button>
-          </span>
-        ))}
+              {opt.label}
+              <button
+                type="button"
+                aria-label={`Hapus opsi ${opt.label}`}
+                onClick={() => deleteOptionMutation.mutate({ id: opt.id })}
+                disabled={isDeletingThisOpt}
+                className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+              >
+                {isDeletingThisOpt ? (
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                ) : (
+                  <X className="h-2.5 w-2.5" />
+                )}
+              </button>
+            </span>
+          );
+        })}
       </div>
 
+      {/* Form Tambah Opsi */}
       <form
         onSubmit={handleSubmit((data) =>
           createOptionMutation.mutate({
             attributeId,
             label: data.label,
-            value: slugify(data.label),
+            value: slugify(data.label), // Generasi value otomatis saat submit
           }),
         )}
         className="space-y-1 pt-1"

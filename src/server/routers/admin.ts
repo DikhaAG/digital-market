@@ -16,6 +16,13 @@ import { gigFormSchema } from "@/lib/validations/gig";
 import { updateCategorySchema } from "@/app/admin/categories/_schemas/category-admin.schema";
 import { AdminService } from "@/server/services/admin.service";
 
+/**
+ * Type guard helper untuk mengecek error dari PostgreSQL secara type-safe
+ */
+function isDatabaseError(error: unknown): error is { code: string } {
+  return typeof error === "object" && error !== null && "code" in error;
+}
+
 export const adminRouter = router({
   // --------------------------------------------------------------------------
   // SECTION 1: GIG MANAGEMENT
@@ -100,7 +107,7 @@ export const adminRouter = router({
       z.object({
         name: z.string().min(2),
         slug: z.string().min(2),
-        parentId: z.string().optional().nullable(), // Fixed to UUID
+        parentId: z.string().optional().nullable(),
         icon: z.string().optional().nullable(),
         image: z.string().optional().nullable(),
       }),
@@ -155,21 +162,31 @@ export const adminRouter = router({
   createAttribute: adminProcedure
     .input(
       z.object({
-        categoryId: z.string().min(1, { message: "ID Kategori wajib diisi" }),
+        categoryId: z.string().min(1, { message: "ID Kategori tidak valid" }),
         name: z.string().min(2),
         slug: z.string().min(2),
       }),
     )
     .mutation(async ({ input }) => {
-      const [newAttr] = await db
-        .insert(attributes)
-        .values({
-          categoryId: input.categoryId,
-          name: input.name,
-          slug: input.slug,
-        })
-        .returning();
-      return newAttr;
+      try {
+        const [newAttr] = await db
+          .insert(attributes)
+          .values({
+            categoryId: input.categoryId,
+            name: input.name,
+            slug: input.slug,
+          })
+          .returning();
+        return newAttr;
+      } catch (error: unknown) {
+        if (isDatabaseError(error) && error.code === "23505") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Atribut dengan nama/slug "${input.slug}" sudah ada pada kategori ini.`,
+          });
+        }
+        throw error;
+      }
     }),
 
   deleteAttribute: adminProcedure
@@ -182,21 +199,31 @@ export const adminRouter = router({
   createAttributeOption: adminProcedure
     .input(
       z.object({
-        attributeId: z.string().min(1, { message: "ID Atribut wajib diisi" }),
+        attributeId: z.uuid({ message: "ID Atribut tidak valid" }),
         label: z.string().min(1),
         value: z.string().min(1),
       }),
     )
     .mutation(async ({ input }) => {
-      const [newOption] = await db
-        .insert(attributeOptions)
-        .values({
-          attributeId: input.attributeId,
-          label: input.label,
-          value: input.value,
-        })
-        .returning();
-      return newOption;
+      try {
+        const [newOption] = await db
+          .insert(attributeOptions)
+          .values({
+            attributeId: input.attributeId,
+            label: input.label,
+            value: input.value,
+          })
+          .returning();
+        return newOption;
+      } catch (error: unknown) {
+        if (isDatabaseError(error) && error.code === "23505") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Opsi "${input.label}" sudah ada pada atribut ini.`,
+          });
+        }
+        throw error;
+      }
     }),
 
   deleteAttributeOption: adminProcedure
