@@ -1,3 +1,5 @@
+// src/server/services/admin.service.ts
+
 import { and, count, eq, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -12,8 +14,72 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export class AdminService {
   /**
-   * Eksekusi transaksi atomik Upsert Gig beserta relasinya.
-   * (Operasi CUD/Mutasi tetap menggunakan Core Query Builder pada objek transaksi `tx`)
+   * mengambil Tree Kategori dengan Column Projection (Fast Fetching)
+   */
+  static async getCategoryTree() {
+    return await db.query.categories.findMany({
+      where: { parentId: { isNull: true } },
+      columns: {
+        id: true,
+        name: true,
+        slug: true,
+        icon: true,
+        image: true,
+      },
+      with: {
+        subcategories: {
+          columns: {
+            id: true,
+            parentId: true,
+            name: true,
+            slug: true,
+            icon: true,
+            image: true,
+          },
+          with: {
+            attributes: {
+              columns: { id: true, categoryId: true, name: true, slug: true },
+              with: {
+                options: {
+                  columns: {
+                    id: true,
+                    attributeId: true,
+                    label: true,
+                    value: true,
+                  },
+                },
+              },
+            },
+            packageFeatures: {
+              columns: { id: true, categoryId: true, name: true, type: true },
+            },
+            gigs: { columns: { id: true } },
+          },
+        },
+        attributes: {
+          columns: { id: true, categoryId: true, name: true, slug: true },
+          with: {
+            options: {
+              columns: {
+                id: true,
+                attributeId: true,
+                label: true,
+                value: true,
+              },
+            },
+          },
+        },
+        packageFeatures: {
+          columns: { id: true, categoryId: true, name: true, type: true },
+        },
+        gigs: { columns: { id: true } },
+      },
+      orderBy: (cat, { asc }) => [asc(cat.name)],
+    });
+  }
+
+  /**
+   * Optimized Upsert Gig dengan Bulk Batch Operations
    */
   static async upsertGig(input: GigFormValues) {
     return await db.transaction(async (tx: Transaction) => {
@@ -61,32 +127,49 @@ export class AdminService {
         );
       }
 
-      // 3. Sync Packages & Feature Values
+      // 3. Sync Packages (Optimized Batch Insertion)
       await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
 
-      for (const pkgInput of input.packages) {
-        const [insertedPkg] = await tx
+      if (input.packages.length > 0) {
+        // Bulk Insert Paket sekaligus
+        const insertedPackages = await tx
           .insert(gigPackages)
-          .values({
-            gigId: gigId!,
-            packageType: pkgInput.packageType,
-            title: pkgInput.title,
-            description: pkgInput.description ?? null,
-            price: pkgInput.price,
-            deliveryTimeDays: pkgInput.deliveryTimeDays,
-            revisions: pkgInput.revisions,
-          })
-          .returning({ id: gigPackages.id });
-
-        if (pkgInput.featureValues.length > 0) {
-          await tx.insert(gigPackageFeatureValues).values(
-            pkgInput.featureValues.map((fv) => ({
-              gigPackageId: insertedPkg.id,
-              packageFeatureId: fv.packageFeatureId,
-              isIncluded: fv.isIncluded,
-              value: fv.value ?? null,
+          .values(
+            input.packages.map((pkg) => ({
+              gigId: gigId!,
+              packageType: pkg.packageType,
+              title: pkg.title,
+              description: pkg.description ?? null,
+              price: pkg.price,
+              deliveryTimeDays: pkg.deliveryTimeDays,
+              revisions: pkg.revisions,
             })),
+          )
+          .returning({
+            id: gigPackages.id,
+            packageType: gigPackages.packageType,
+          });
+
+        // Map ID paket yang baru dimasukkan ke Feature Values
+        const featureValuesToInsert = input.packages.flatMap((pkgInput) => {
+          const matchedPkg = insertedPackages.find(
+            (p) => p.packageType === pkgInput.packageType,
           );
+          if (!matchedPkg || pkgInput.featureValues.length === 0) return [];
+
+          return pkgInput.featureValues.map((fv) => ({
+            gigPackageId: matchedPkg.id,
+            packageFeatureId: fv.packageFeatureId,
+            isIncluded: fv.isIncluded,
+            value: fv.value ?? null,
+          }));
+        });
+
+        // Bulk Insert Feature Values sekaligus
+        if (featureValuesToInsert.length > 0) {
+          await tx
+            .insert(gigPackageFeatureValues)
+            .values(featureValuesToInsert);
         }
       }
 
@@ -95,7 +178,7 @@ export class AdminService {
   }
 
   /**
-   * Ambil daftar Gig untuk Audit menggunakan RQB v2
+   * Audit Gig dengan RQB v2
    */
   static async getGigsForAudit(input: {
     search?: string;
@@ -110,26 +193,22 @@ export class AdminService {
       input;
     const offset = (page - 1) * limit;
 
-    // 1. Relational Query v2 dengan Object Filter & Object OrderBy Syntax
     const itemsQuery = db.query.gigs.findMany({
       where: {
         ...(search?.trim() ? { title: { ilike: `%${search.trim()}%` } } : {}),
         ...(categoryId ? { categoryId } : {}),
         ...(sellerId ? { sellerId } : {}),
       },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
+      orderBy: { [sortBy]: sortOrder },
       limit,
       offset,
       with: {
-        seller: true,
-        category: true,
-        packages: true,
+        seller: { columns: { id: true, name: true, image: true } },
+        category: { columns: { id: true, name: true, slug: true } },
+        packages: { columns: { id: true, packageType: true, price: true } },
       },
     });
 
-    // 2. Count Query tetap menggunakan Core SQL Builder
     const conditions = [];
     if (search?.trim())
       conditions.push(ilike(gigs.title, `%${search.trim()}%`));

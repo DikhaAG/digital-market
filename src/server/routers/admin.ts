@@ -1,6 +1,9 @@
+// src/server/routers/admin.ts
+
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { router, adminProcedure } from "@/lib/trpc/trpc"; // 👈 Impor adminProcedure
+import { TRPCError } from "@trpc/server";
+import { router, adminProcedure } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
 import {
   categories,
@@ -10,29 +13,23 @@ import {
   gigs,
 } from "@/lib/db/schema";
 import { gigFormSchema } from "@/lib/validations/gig";
-import {
-  updateCategorySchema, // 👈 Import skema terpusat
-} from "@/app/admin/categories/_schemas/category-admin.schema";
+import { updateCategorySchema } from "@/app/admin/categories/_schemas/category-admin.schema";
 import { AdminService } from "@/server/services/admin.service";
 
 export const adminRouter = router({
   // --------------------------------------------------------------------------
   // SECTION 1: GIG MANAGEMENT
   // --------------------------------------------------------------------------
-
   getCategoryGigMeta: adminProcedure
     .input(z.object({ categoryId: z.uuid() }))
     .query(async ({ input }) => {
       const categoryData = await db.query.categories.findFirst({
-        where: {
-          id: input.categoryId,
-        },
+        where: { id: input.categoryId },
         with: {
           attributes: { with: { options: true } },
           packageFeatures: true,
         },
       });
-
       return categoryData ?? { attributes: [], packageFeatures: [] };
     }),
 
@@ -40,9 +37,7 @@ export const adminRouter = router({
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
       const gig = await db.query.gigs.findFirst({
-        where: {
-          id: input.id,
-        },
+        where: { id: input.id },
         with: {
           seller: true,
           category: true,
@@ -51,7 +46,12 @@ export const adminRouter = router({
         },
       });
 
-      if (!gig) throw new Error("Gig tidak ditemukan");
+      if (!gig) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Gig tidak ditemukan",
+        });
+      }
       return gig;
     }),
 
@@ -91,28 +91,8 @@ export const adminRouter = router({
   // --------------------------------------------------------------------------
   // SECTION 2: CATEGORY MANAGEMENT
   // --------------------------------------------------------------------------
-
   getCategoryTree: adminProcedure.query(async () => {
-    return await db.query.categories.findMany({
-      where: {
-        parentId: {
-          isNull: true,
-        },
-      },
-      with: {
-        subcategories: {
-          with: {
-            attributes: { with: { options: true } },
-            packageFeatures: true,
-            gigs: { columns: { id: true } },
-          },
-        },
-        attributes: { with: { options: true } },
-        packageFeatures: true,
-        gigs: { columns: { id: true } },
-      },
-      orderBy: (cat, { asc }) => [asc(cat.name)],
-    });
+    return await AdminService.getCategoryTree();
   }),
 
   createCategory: adminProcedure
@@ -120,7 +100,7 @@ export const adminRouter = router({
       z.object({
         name: z.string().min(2),
         slug: z.string().min(2),
-        parentId: z.string().optional().nullable(),
+        parentId: z.string().optional().nullable(), // Fixed to UUID
         icon: z.string().optional().nullable(),
         image: z.string().optional().nullable(),
       }),
@@ -136,7 +116,6 @@ export const adminRouter = router({
           image: input.image ?? null,
         })
         .returning();
-
       return newCategory;
     }),
 
@@ -154,6 +133,12 @@ export const adminRouter = router({
         .where(eq(categories.id, input.id))
         .returning();
 
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Kategori tidak ditemukan untuk diperbarui",
+        });
+      }
       return updated;
     }),
 
@@ -167,7 +152,6 @@ export const adminRouter = router({
   // --------------------------------------------------------------------------
   // SECTION 3: ATTRIBUTES & OPTIONS MANAGEMENT
   // --------------------------------------------------------------------------
-
   createAttribute: adminProcedure
     .input(
       z.object({
@@ -185,7 +169,6 @@ export const adminRouter = router({
           slug: input.slug,
         })
         .returning();
-
       return newAttr;
     }),
 
@@ -213,7 +196,6 @@ export const adminRouter = router({
           value: input.value,
         })
         .returning();
-
       return newOption;
     }),
 
@@ -229,7 +211,6 @@ export const adminRouter = router({
   // --------------------------------------------------------------------------
   // SECTION 4: PACKAGE FEATURES MASTER MANAGEMENT
   // --------------------------------------------------------------------------
-
   addPackageFeature: adminProcedure
     .input(
       z.object({
@@ -247,7 +228,6 @@ export const adminRouter = router({
           type: input.type,
         })
         .returning();
-
       return newFeature;
     }),
 
