@@ -1,7 +1,13 @@
+// src/app/admin/gigs/_components/dialogs/upsert-gig-dialog.tsx
 "use client";
 
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  FormProvider,
+  type FieldErrors,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Plus,
@@ -11,9 +17,13 @@ import {
   Package,
   Info,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BaseAdminDialog } from "@/app/admin/categories/components/base-admin-dialog";
+import { trpc } from "@/lib/trpc/client";
+import { toast } from "sonner";
+
 import { useGigMutation } from "../../_hooks/use-gig-mutation";
 import {
   gigFormSchema,
@@ -21,116 +31,131 @@ import {
   type GigFormValues,
   type GigAuditItem,
 } from "../../_schemas/gig-admin-schema";
-import { trpc } from "@/lib/trpc/client";
 
-// Import Sub-komponen Tab
 import { GigOverviewTab } from "./tabs/gig-overview-tab";
 import { GigAttributesTab } from "./tabs/gig-attributes-tab";
 import { GigPackagesTab } from "./tabs/gig-packages-tab";
+
+// -----------------------------------------------------------------------------
+// Domain Types & Constants
+// -----------------------------------------------------------------------------
+
+type ActiveTab = "overview" | "attributes" | "packages";
 
 interface UpsertGigDialogProps {
   gigToEdit?: GigAuditItem;
 }
 
+const PACKAGE_TYPES = ["basic", "standard", "premium"] as const;
+
+const DEFAULT_PACKAGE_CONFIGS: Record<
+  (typeof PACKAGE_TYPES)[number],
+  { price: number; deliveryTimeDays: number; revisions: number }
+> = {
+  basic: { price: 15, deliveryTimeDays: 3, revisions: 2 },
+  standard: { price: 35, deliveryTimeDays: 2, revisions: 5 },
+  premium: { price: 75, deliveryTimeDays: 1, revisions: 99 },
+};
+
+// -----------------------------------------------------------------------------
+// Factory Pattern: Form Initializer & Normalizer
+// -----------------------------------------------------------------------------
+
+class GigFormFactory {
+  static createPackages(
+    existingPackages?: GigAuditItem["packages"],
+  ): GigFormValues["packages"] {
+    return PACKAGE_TYPES.map((pType) => {
+      const found = existingPackages?.find(
+        (pkg) => pkg.packageType?.toLowerCase() === pType,
+      );
+
+      if (found) {
+        return {
+          packageType: pType,
+          title: found.title ?? "",
+          description: found.description ?? "",
+          price: found.price ?? 0,
+          deliveryTimeDays: found.deliveryTimeDays ?? 1,
+          revisions: found.revisions ?? 0,
+          featureValues:
+            found.featureValues?.map((fv) => ({
+              packageFeatureId: fv.packageFeatureId,
+              isIncluded: fv.isIncluded ?? false,
+              value: fv.value ?? "",
+            })) ?? [],
+        };
+      }
+
+      const config = DEFAULT_PACKAGE_CONFIGS[pType];
+      const formattedTitle = `${pType.charAt(0).toUpperCase() + pType.slice(1)} Package`;
+
+      return {
+        packageType: pType,
+        title: formattedTitle,
+        description: "",
+        price: config.price,
+        deliveryTimeDays: config.deliveryTimeDays,
+        revisions: config.revisions,
+        featureValues: [],
+      };
+    });
+  }
+
+  static createInitialValues(gigToEdit?: GigAuditItem): GigFormValues {
+    if (gigToEdit) {
+      return {
+        id: gigToEdit.id,
+        sellerId: gigToEdit.seller?.id ?? "",
+        categoryId: gigToEdit.category?.id ?? "",
+        title: gigToEdit.title,
+        slug: gigToEdit.slug,
+        about: gigToEdit.about ?? "",
+        coverImage: gigToEdit.coverImage ?? "",
+        attributeOptionIds:
+          gigToEdit.gigAttributes?.map((ga) => ga.attributeOptionId) ?? [],
+        packages: this.createPackages(gigToEdit.packages),
+      };
+    }
+
+    return {
+      title: "",
+      slug: "",
+      sellerId: "",
+      categoryId: "",
+      about: "",
+      coverImage: "",
+      attributeOptionIds: [],
+      packages: this.createPackages(),
+    };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Presentation Component
+// -----------------------------------------------------------------------------
+
 export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
-  const isEdit = !!gigToEdit;
+  const isEdit = Boolean(gigToEdit);
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+
   const { trpc: trpcClient, createOptions } = useGigMutation();
 
-  // 1. Fetching Master Data (Hanya saat dialog TERBUKA)
   const { data: sellers } = trpc.admin.getAllSellers.useQuery(undefined, {
     enabled: open,
   });
   const { data: categoryTree } = trpc.admin.getCategoryTree.useQuery(
     undefined,
-    {
-      enabled: open,
-    },
+    { enabled: open },
   );
 
   const subcategories =
     categoryTree?.flatMap((parent) => parent.subcategories) ?? [];
 
-  // 2. Initial Form Setup
   const form = useForm<GigFormValues>({
     resolver: zodResolver(gigFormSchema),
-    defaultValues: gigToEdit
-      ? {
-          id: gigToEdit.id,
-          sellerId: gigToEdit.seller?.id ?? "",
-          categoryId: gigToEdit.category?.id ?? "",
-          title: gigToEdit.title,
-          slug: gigToEdit.slug,
-          about: gigToEdit.about ?? "",
-          coverImage: gigToEdit.coverImage ?? "",
-          attributeOptionIds:
-            gigToEdit.gigAttributes?.map((ga) => ga.attributeOptionId) ?? [],
-          packages:
-            gigToEdit.packages.length > 0
-              ? gigToEdit.packages.map((pkg) => ({
-                  packageType: pkg.packageType,
-                  title: pkg.title ?? "",
-                  description: pkg.description ?? "",
-                  price: pkg.price,
-                  deliveryTimeDays: pkg.deliveryTimeDays ?? 1,
-                  revisions: pkg.revisions ?? 0,
-                  featureValues:
-                    pkg.featureValues?.map((fv) => ({
-                      packageFeatureId: fv.packageFeatureId,
-                      isIncluded: fv.isIncluded ?? false,
-                      value: fv.value ?? null,
-                    })) ?? [],
-                }))
-              : [
-                  {
-                    packageType: "basic",
-                    title: "Basic Service",
-                    description: "",
-                    price: 10,
-                    deliveryTimeDays: 2,
-                    revisions: 1,
-                    featureValues: [],
-                  },
-                ],
-        }
-      : {
-          title: "",
-          slug: "",
-          sellerId: "",
-          categoryId: "",
-          about: "",
-          coverImage: "",
-          attributeOptionIds: [],
-          packages: [
-            {
-              packageType: "basic",
-              title: "Basic Package",
-              description: "Paket dasar pencakupan standar",
-              price: 15,
-              deliveryTimeDays: 3,
-              revisions: 2,
-              featureValues: [],
-            },
-            {
-              packageType: "standard",
-              title: "Standard Package",
-              description: "Paket menengah paling populer",
-              price: 35,
-              deliveryTimeDays: 2,
-              revisions: 5,
-              featureValues: [],
-            },
-            {
-              packageType: "premium",
-              title: "Premium Package",
-              description: "Paket komprehensif skala penuh",
-              price: 75,
-              deliveryTimeDays: 1,
-              revisions: 99,
-              featureValues: [],
-            },
-          ],
-        },
+    defaultValues: GigFormFactory.createInitialValues(gigToEdit),
   });
 
   const selectedCategoryId = useWatch({
@@ -144,7 +169,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     selectedCategoryId && selectedCategoryId.trim().length > 0,
   );
 
-  // 3. Fetch Metadata Entitas
   const { data: catMeta } = trpc.admin.getCategoryGigMeta.useQuery(
     { categoryId: selectedCategoryId! },
     { enabled: open && isCategoryValid },
@@ -160,12 +184,51 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     }),
   );
 
+  const errors = form.formState.errors;
+  const hasOverviewError = Boolean(
+    errors.title ||
+    errors.sellerId ||
+    errors.categoryId ||
+    errors.slug ||
+    errors.about ||
+    errors.coverImage,
+  );
+  const hasPackagesError = Boolean(errors.packages);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      setActiveTab("overview");
+      form.reset(GigFormFactory.createInitialValues(gigToEdit));
+    }
+  };
+
+  const handleInvalidSubmit = (formErrors: FieldErrors<GigFormValues>) => {
+    console.error("❌ Form Validation Errors:", formErrors);
+    toast.error(
+      "Gagal menyimpan. Harap periksa bidang formulir yang belum lengkap.",
+    );
+
+    if (hasOverviewError) {
+      setActiveTab("overview");
+    } else if (hasPackagesError) {
+      setActiveTab("packages");
+    }
+  };
+
+  const handleSubmit = (data: GigFormValues) => {
+    mutation.mutate({
+      ...data,
+      slug: data.slug || slugify(data.title),
+    });
+  };
+
   return (
     <BaseAdminDialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       trigger={
-        isEdit ? (
+        gigToEdit ? (
           <Button
             size="icon"
             variant="ghost"
@@ -182,68 +245,74 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           </Button>
         )
       }
-      title={isEdit ? `Edit Gig: ${gigToEdit.title}` : "Buat Gig Baru"}
+      title={gigToEdit ? `Edit Gig: ${gigToEdit.title}` : "Buat Gig Baru"}
       description="Lengkapi konfigurasi informasi umum, filter atribut kustom, dan matriks fitur paket harga."
       form={form}
-      onSubmit={(data) => {
-        mutation.mutate({
-          ...data,
-          slug: data.slug || slugify(data.title),
-        });
-      }}
+      onSubmit={handleSubmit}
+      onInvalidSubmit={handleInvalidSubmit}
       isPending={mutation.isPending}
       submitText={isEdit ? "Simpan Perubahan" : "Publikasikan Gig"}
       submitIcon={<Sparkles className="h-4 w-4" />}
       maxWidth="md"
     >
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-muted/70 grid grid-cols-3 h-auto p-1 gap-1 rounded-xl">
-          <TabsTrigger
-            value="overview"
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
-          >
-            <Info className="h-3.5 w-3.5" />
-            <span>1. Overview</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="attributes"
-            disabled={!isCategoryValid}
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>2. Atribut ({attributeOptionIds.length})</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="packages"
-            disabled={!isCategoryValid}
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
-          >
-            <Package className="h-3.5 w-3.5" />
-            <span>3. Paket Harga</span>
-          </TabsTrigger>
-        </TabsList>
+      <FormProvider {...form}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as ActiveTab)}
+          className="w-full"
+        >
+          <TabsList className="bg-muted/70 grid grid-cols-3 h-auto p-1 gap-1 rounded-xl">
+            <TabsTrigger
+              value="overview"
+              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative"
+            >
+              <Info className="h-3.5 w-3.5" />
+              <span>1. Overview</span>
+              {hasOverviewError && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              )}
+            </TabsTrigger>
 
-        <TabsContent value="overview">
-          <GigOverviewTab
-            form={form}
-            sellers={sellers}
-            subcategories={subcategories}
-            isEdit={isEdit}
-            isPending={mutation.isPending}
-          />
-        </TabsContent>
+            <TabsTrigger
+              value="attributes"
+              disabled={!isCategoryValid}
+              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>2. Atribut ({attributeOptionIds.length})</span>
+            </TabsTrigger>
 
-        <TabsContent value="attributes">
-          <GigAttributesTab form={form} attributes={catMeta?.attributes} />
-        </TabsContent>
+            <TabsTrigger
+              value="packages"
+              disabled={!isCategoryValid}
+              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative"
+            >
+              <Package className="h-3.5 w-3.5" />
+              <span>3. Paket Harga</span>
+              {hasPackagesError && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="packages">
-          <GigPackagesTab
-            form={form}
-            packageFeatures={catMeta?.packageFeatures}
-          />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="overview">
+            <GigOverviewTab
+              sellers={sellers}
+              subcategories={subcategories}
+              isEdit={isEdit}
+              isPending={mutation.isPending}
+            />
+          </TabsContent>
+
+          <TabsContent value="attributes">
+            <GigAttributesTab attributes={catMeta?.attributes} />
+          </TabsContent>
+
+          <TabsContent value="packages">
+            <GigPackagesTab packageFeatures={catMeta?.packageFeatures} />
+          </TabsContent>
+        </Tabs>
+      </FormProvider>
     </BaseAdminDialog>
   );
 }

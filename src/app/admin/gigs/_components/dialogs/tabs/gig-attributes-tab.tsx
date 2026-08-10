@@ -1,11 +1,11 @@
+// src/app/admin/gigs/_components/dialogs/tabs/gig-attributes-tab.tsx
 "use client";
 
 import { Check } from "lucide-react";
-import { UseFormReturn, useWatch } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { type GigFormValues } from "../../../_schemas/gig-admin-schema";
 
 interface GigAttributesTabProps {
-  form: UseFormReturn<GigFormValues>;
   attributes?: Array<{
     id: string;
     name: string;
@@ -13,9 +13,10 @@ interface GigAttributesTabProps {
   }>;
 }
 
-export function GigAttributesTab({ form, attributes }: GigAttributesTabProps) {
+export function GigAttributesTab({ attributes }: GigAttributesTabProps) {
+  const { control, setValue } = useFormContext<GigFormValues>();
   const attributeOptionIds =
-    useWatch({ control: form.control, name: "attributeOptionIds" }) ?? [];
+    useWatch({ control, name: "attributeOptionIds" }) ?? [];
 
   if (!attributes || attributes.length === 0) {
     return (
@@ -28,7 +29,7 @@ export function GigAttributesTab({ form, attributes }: GigAttributesTabProps) {
   }
 
   return (
-    <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 pt-3">
+    <div className="space-y-3 max-h-[60vh] sm:max-h-[380px] overflow-y-auto pr-1 pt-3">
       {attributes.map((attr) => (
         <div
           key={attr.id}
@@ -44,14 +45,15 @@ export function GigAttributesTab({ form, attributes }: GigAttributesTabProps) {
                 <button
                   type="button"
                   key={opt.id}
+                  aria-pressed={isChecked}
                   onClick={() => {
                     if (isChecked) {
-                      form.setValue(
+                      setValue(
                         "attributeOptionIds",
                         attributeOptionIds.filter((id) => id !== opt.id),
                       );
                     } else {
-                      form.setValue("attributeOptionIds", [
+                      setValue("attributeOptionIds", [
                         ...attributeOptionIds,
                         opt.id,
                       ]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { UseFormReturn } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -24,7 +24,6 @@ import {
 } from "../../../_schemas/gig-admin-schema";
 
 interface GigOverviewTabProps {
-  form: UseFormReturn<GigFormValues>;
   sellers?: SellerItem[];
   subcategories: Array<{ id: string; name: string }>;
   isEdit: boolean;
@@ -32,12 +31,14 @@ interface GigOverviewTabProps {
 }
 
 export function GigOverviewTab({
-  form,
   sellers,
   subcategories,
   isEdit,
   isPending,
 }: GigOverviewTabProps) {
+  // 💡 Mengambil instance form dari FormProvider
+  const form = useFormContext<GigFormValues>();
+
   return (
     <div className="space-y-3 pt-3">
       {/* Field: Title */}

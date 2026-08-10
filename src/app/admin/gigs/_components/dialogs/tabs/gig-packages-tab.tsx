@@ -1,6 +1,7 @@
+// src/app/admin/gigs/_components/dialogs/tabs/gig-packages-tab.tsx
 "use client";
 
-import { UseFormReturn, useWatch } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -13,7 +14,6 @@ import {
 import { type GigFormValues } from "../../../_schemas/gig-admin-schema";
 
 interface GigPackagesTabProps {
-  form: UseFormReturn<GigFormValues>;
   packageFeatures?: Array<{
     id: string;
     name: string;
@@ -21,17 +21,27 @@ interface GigPackagesTabProps {
   }>;
 }
 
-export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
+const PACKAGE_TYPES = ["basic", "standard", "premium"] as const;
+
+export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
+  const form = useFormContext<GigFormValues>();
   const packagesWatch =
     useWatch({ control: form.control, name: "packages" }) ?? [];
 
   return (
     <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1 pt-3">
-      {(["basic", "standard", "premium"] as const).map((pType, pIdx) => (
+      {PACKAGE_TYPES.map((pType, pIdx) => (
         <div
           key={pType}
           className="p-3.5 rounded-xl border border-border bg-card space-y-3 shadow-2xs"
         >
+          {/* Sinkronisasi Jenis Paket ke Form State */}
+          <input
+            type="hidden"
+            {...form.register(`packages.${pIdx}.packageType`)}
+            value={pType}
+          />
+
           <div className="flex items-center justify-between">
             <Badge
               variant={pType === "basic" ? "default" : "outline"}
@@ -55,6 +65,7 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                       placeholder="Judul Paket"
                       className="h-8 text-xs"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                 </FormItem>
@@ -75,6 +86,13 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                       placeholder="Harga ($)"
                       className="h-8 text-xs"
                       {...field}
+                      value={
+                        field.value !== undefined &&
+                        field.value !== null &&
+                        !Number.isNaN(field.value)
+                          ? field.value
+                          : ""
+                      }
                       onChange={(e) =>
                         field.onChange(e.target.valueAsNumber || 0)
                       }
@@ -99,6 +117,13 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                       type="number"
                       className="h-8 text-xs"
                       {...field}
+                      value={
+                        field.value !== undefined &&
+                        field.value !== null &&
+                        !Number.isNaN(field.value)
+                          ? field.value
+                          : ""
+                      }
                       onChange={(e) =>
                         field.onChange(e.target.valueAsNumber || 1)
                       }
@@ -121,6 +146,13 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                       type="number"
                       className="h-8 text-xs"
                       {...field}
+                      value={
+                        field.value !== undefined &&
+                        field.value !== null &&
+                        !Number.isNaN(field.value)
+                          ? field.value
+                          : ""
+                      }
                       onChange={(e) =>
                         field.onChange(e.target.valueAsNumber || 0)
                       }
@@ -131,11 +163,11 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
             />
           </div>
 
-          {/* Checklist Matriks Fitur */}
+          {/* Matriks Fitur Paket */}
           {packageFeatures && packageFeatures.length > 0 && (
             <div className="border-t border-border/60 pt-3 space-y-2">
               <span className="text-[11px] font-extrabold text-foreground block">
-                Fitur Matriks [packageFeatures]:
+                Fitur Matriks:
               </span>
 
               <div className="space-y-2">
@@ -149,35 +181,22 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                   const customValue =
                     existIdx !== -1 ? (currentFV[existIdx]?.value ?? "") : "";
 
-                  const handleToggleChange = (checked: boolean) => {
+                  const updateFeatureMatrix = (
+                    nextIsIncluded: boolean,
+                    nextValue: string,
+                  ) => {
                     const updatedFV = [...currentFV];
                     if (existIdx !== -1) {
                       updatedFV[existIdx] = {
-                        ...updatedFV[existIdx],
-                        isIncluded: checked,
+                        packageFeatureId: feat.id,
+                        isIncluded: nextIsIncluded,
+                        value: nextValue,
                       };
                     } else {
                       updatedFV.push({
                         packageFeatureId: feat.id,
-                        isIncluded: checked,
-                        value: null,
-                      });
-                    }
-                    form.setValue(`packages.${pIdx}.featureValues`, updatedFV);
-                  };
-
-                  const handleValueChange = (val: string) => {
-                    const updatedFV = [...currentFV];
-                    if (existIdx !== -1) {
-                      updatedFV[existIdx] = {
-                        ...updatedFV[existIdx],
-                        value: val,
-                      };
-                    } else {
-                      updatedFV.push({
-                        packageFeatureId: feat.id,
-                        isIncluded: true,
-                        value: val,
+                        isIncluded: nextIsIncluded,
+                        value: nextValue,
                       });
                     }
                     form.setValue(`packages.${pIdx}.featureValues`, updatedFV);
@@ -204,16 +223,23 @@ export function GigPackagesTab({ form, packageFeatures }: GigPackagesTabProps) {
                             placeholder={
                               feat.type === "number" ? "Jml" : "Nilai"
                             }
-                            value={customValue}
+                            value={customValue ?? ""}
                             disabled={!isIncluded}
-                            onChange={(e) => handleValueChange(e.target.value)}
+                            onChange={(e) =>
+                              updateFeatureMatrix(
+                                Boolean(isIncluded),
+                                e.target.value,
+                              )
+                            }
                             className="h-7 w-20 text-[11px]"
                           />
                         )}
 
                         <Switch
-                          checked={isIncluded ?? false}
-                          onCheckedChange={handleToggleChange}
+                          checked={Boolean(isIncluded)}
+                          onCheckedChange={(checked) =>
+                            updateFeatureMatrix(checked, customValue)
+                          }
                         />
                       </div>
                     </div>

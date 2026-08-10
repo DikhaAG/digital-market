@@ -1,3 +1,4 @@
+// src/app/admin/gigs/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -6,16 +7,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+
 import { UpsertGigDialog } from "./_components/dialogs/upsert-gig-dialog";
 import { GigCard } from "./_components/gig-card";
-import { type GigAuditItem } from "./_schemas/gig-admin-schema"; // 👈 Impor tipe data terpusat
+import { type GigAuditItem } from "./_schemas/gig-admin-schema";
 
-export default function GigsAdminPage() {
+/**
+ * Custom Hook Facade untuk memisahkan logika pencarian dan paginasi
+ */
+function useGigAuditController(limit = 8) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const limit = 8;
 
-  const { data, isLoading } = trpc.admin.getGigsForAudit.useQuery(
+  const query = trpc.admin.getGigsForAudit.useQuery(
     {
       search,
       page,
@@ -24,10 +28,28 @@ export default function GigsAdminPage() {
       sortOrder: "desc",
     },
     {
-      staleTime: 1000 * 60 * 3, // Cache data selama 3 menit
+      staleTime: 1000 * 60 * 3,
       refetchOnWindowFocus: false,
     },
   );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  return {
+    search,
+    page,
+    setPage,
+    handleSearchChange,
+    ...query,
+  };
+}
+
+export default function GigsAdminPage() {
+  const { search, page, setPage, handleSearchChange, data, isLoading } =
+    useGigAuditController(8);
 
   return (
     <div className="space-y-8 pb-16">
@@ -45,7 +67,7 @@ export default function GigsAdminPage() {
         <UpsertGigDialog />
       </div>
 
-      {/* Filter & Search Toolbar */}
+      {/* Toolbar Filter */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -53,15 +75,12 @@ export default function GigsAdminPage() {
             placeholder="Cari berdasarkan judul Gig..."
             className="pl-9 h-9 text-xs rounded-xl"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1); // Reset otomatis ke halaman pertama saat mencari
-            }}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Grid View & Skeleton Loading */}
+      {/* Content View */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -82,13 +101,12 @@ export default function GigsAdminPage() {
       ) : data?.items && data.items.length > 0 ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* 🔴 FIX: Berikan tipe eksplisit (gig: GigAuditItem) */}
             {data.items.map((gig: GigAuditItem) => (
               <GigCard key={gig.id} gig={gig} />
             ))}
           </div>
 
-          {/* Pagination Controls */}
+          {/* Controls Paginasi */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-border/80 pt-4 gap-3">
             <p className="text-xs text-muted-foreground">
               Menampilkan{" "}

@@ -1,7 +1,12 @@
+// src/app/admin/categories/components/base-admin-dialog.tsx
 "use client";
 
 import { useState, type ReactNode, type ReactElement } from "react";
-import { type UseFormReturn, type FieldValues } from "react-hook-form";
+import {
+  type UseFormReturn,
+  type FieldValues,
+  type FieldErrors,
+} from "react-hook-form";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +26,7 @@ export interface BaseAdminDialogProps<TFieldValues extends FieldValues> {
   description?: string;
   form: UseFormReturn<TFieldValues>;
   onSubmit: (data: TFieldValues) => void;
+  onInvalidSubmit?: (errors: FieldErrors<TFieldValues>) => void; // 👈 Prop Baru
   isPending: boolean;
   submitText: string;
   submitIcon?: ReactNode;
@@ -36,6 +42,7 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
   description,
   form,
   onSubmit,
+  onInvalidSubmit,
   isPending,
   submitText,
   submitIcon = <Sparkles className="h-4 w-4" />,
@@ -74,9 +81,10 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
             </DialogDescription>
           )}
         </DialogHeader>
+
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} // 👈 Dukung onInvalid
             className="space-y-4 pt-2"
           >
             {children}
