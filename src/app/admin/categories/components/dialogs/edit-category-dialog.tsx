@@ -39,8 +39,14 @@ export function EditCategoryDialog({
   });
 
   const { trpc, createOptions } = useCategoryTreeMutation();
+
+  // DX Best Approach: Cukup definisikan pesan loading & sukses di sini!
   const mutation = trpc.admin.updateCategory.useMutation(
-    createOptions({ successMessage: "Kategori berhasil diperbarui" }),
+    createOptions({
+      loadingMessage: "Memperbarui kategori...",
+      successMessage: "Kategori berhasil diperbarui",
+      errorMessage: "Gagal memperbarui kategori",
+    }),
   );
 
   return (
