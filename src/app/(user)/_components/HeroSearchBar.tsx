@@ -265,9 +265,7 @@ function SearchSuggestionsPopover({
             onClick={onSubmitSearch}
             className="w-full p-3 bg-muted/30 hover:bg-muted text-xs font-semibold text-primary flex items-center justify-between transition-colors cursor-pointer"
           >
-            <span>
-              Lihat semua hasil untuk {`&quot;` + debouncedQuery + `&quot;`}
-            </span>
+            <span>Lihat semua hasil untuk &quot; {+debouncedQuery} &quot</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -277,9 +275,9 @@ function SearchSuggestionsPopover({
             Tidak ada layanan ditemukan
           </p>
           <p className="text-xs">
-            Coba gunakan kata kunci lain untuk {`&quote;`}
+            Coba gunakan kata kunci lain untuk &quote;
             {debouncedQuery}
-            {`&quote;`}
+            &quote;
           </p>
         </div>
       )}

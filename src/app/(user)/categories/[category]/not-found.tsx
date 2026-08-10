@@ -41,7 +41,7 @@ export default function CategoryNotFound() {
         </Badge>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-          Category Doesn{`&apos;`}t Exist
+          Category Doesn&apost; Exist
         </h1>
 
         <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">

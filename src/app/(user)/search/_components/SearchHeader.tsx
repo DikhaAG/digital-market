@@ -10,9 +10,9 @@ export function SearchHeader({ query }: SearchHeaderProps) {
           <span>
             Results for{" "}
             <span className="text-primary">
-              {`&quot;`}
+              &quot;
               {query}
-              {`&quot;`}
+              &quot;
             </span>
           </span>
         ) : (
