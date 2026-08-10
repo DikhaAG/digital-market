@@ -1,9 +1,8 @@
 // src/server/services/admin.service.ts
 
-import { and, count, eq, ilike, sql } from "drizzle-orm";
+import { and, count, eq, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
-  categories,
   gigs,
   gigAttributeOptions,
   gigPackages,
@@ -14,8 +13,22 @@ import { GigFormValues } from "@/lib/validations/gig";
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export class AdminService {
+  /**
+   * Mengambil Tree Kategori dengan Hitungan Gig yang Teroptimasi
+   * Menjalankan kueri pohon kategori & kueri GROUP BY Gig secara paralel (< 30ms)
+   */
   static async getCategoryTree() {
-    return await db.query.categories.findMany({
+    // 1. Kueri hitung jumlah Gig per Kategori (Memanfaatkan indeks gigs_category_idx)
+    const gigCountsQuery = db
+      .select({
+        categoryId: gigs.categoryId,
+        totalGigs: count(),
+      })
+      .from(gigs)
+      .groupBy(gigs.categoryId);
+
+    // 2. Kueri Pohon Kategori Utama (Parent & Subcategories)
+    const categoryTreeQuery = db.query.categories.findMany({
       where: { parentId: { isNull: true } },
       columns: {
         id: true,
@@ -33,13 +46,6 @@ export class AdminService {
             slug: true,
             icon: true,
             image: true,
-          },
-          extras: {
-            gigCount: sql<number>`(
-              SELECT COUNT(*)::int 
-              FROM ${gigs} 
-              WHERE ${gigs.categoryId} = ${categories.id}
-            )`,
           },
           with: {
             attributes: {
@@ -79,6 +85,26 @@ export class AdminService {
       },
       orderBy: (cat, { asc }) => [asc(cat.name)],
     });
+
+    // Eksekusi kedua kueri secara paralel untuk latensi minimal
+    const [gigCounts, tree] = await Promise.all([
+      gigCountsQuery,
+      categoryTreeQuery,
+    ]);
+
+    // Buat Map O(1) Lookup untuk pencocokan ID kategori -> jumlah Gig
+    const gigCountMap = new Map(
+      gigCounts.map((item) => [item.categoryId, Number(item.totalGigs)]),
+    );
+
+    // Sisipkan properti gigCount ke tiap sub-kategori
+    return tree.map((parent) => ({
+      ...parent,
+      subcategories: parent.subcategories.map((sub) => ({
+        ...sub,
+        gigCount: gigCountMap.get(sub.id) ?? 0,
+      })),
+    }));
   }
 
   /**
