@@ -1,7 +1,7 @@
-//src/lib/trpc/routers/_app.ts
 import { defineRelations } from "drizzle-orm";
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   pgEnum,
@@ -9,6 +9,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -95,12 +96,16 @@ export const categories = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull().unique(),
 
-    icon: text("icon"), // Menyimpan nama icon Lucide (misal "code", "palette") atau URL SVG
-    image: text("image"), // Menyimpan URL banner/thumbnail kategori dari CDN
+    icon: text("icon"),
+    image: text("image"),
   },
   (table) => [
+    foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+      name: "categories_parent_id_fk",
+    }).onDelete("cascade"),
     index("categories_parent_idx").on(table.parentId),
-    index("categories_slug_idx").on(table.slug),
   ],
 );
 
@@ -114,7 +119,10 @@ export const attributes = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 100 }).notNull(),
   },
-  (table) => [index("attributes_category_idx").on(table.categoryId)],
+  (table) => [
+    index("attributes_category_idx").on(table.categoryId),
+    unique("attr_category_slug_uq").on(table.categoryId, table.slug),
+  ],
 );
 
 export const attributeOptions = pgTable(
@@ -127,7 +135,10 @@ export const attributeOptions = pgTable(
     label: varchar("label", { length: 255 }).notNull(),
     value: varchar("value", { length: 100 }).notNull(),
   },
-  (table) => [index("attribute_options_attr_idx").on(table.attributeId)],
+  (table) => [
+    index("attribute_options_attr_idx").on(table.attributeId),
+    unique("attr_opt_attr_val_uq").on(table.attributeId, table.value),
+  ],
 );
 
 export const gigs = pgTable(
@@ -138,13 +149,17 @@ export const gigs = pgTable(
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),
     categoryId: uuid("category_id")
-      .references(() => categories.id)
+      .references(() => categories.id, { onDelete: "restrict" })
       .notNull(),
     title: text("title").notNull(),
     slug: text("slug").notNull().unique(),
-    about: text("about"), //  [DITAMBAHKAN] Deskripsi mendalam "About This Gig"
+    about: text("about"),
     coverImage: text("cover_image"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
     index("gigs_category_idx").on(table.categoryId),
@@ -164,20 +179,16 @@ export const gigAttributeOptions = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.gigId, table.attributeOptionId] }),
-    index("gig_attr_gig_idx").on(table.gigId),
     index("gig_attr_option_idx").on(table.attributeOptionId),
   ],
 );
 
-// Enum tipe fitur checklist (apakah centang true/false, angka, atau teks)
 export const packageFeatureTypeEnum = pgEnum("package_feature_type", [
-  "boolean", // Untuk centang (✓) / silang (✗)
-  "text", // Untuk teks kustom
-  "number", // Untuk angka (misal: jumlah konsep = 2)
+  "boolean",
+  "text",
+  "number",
 ]);
 
-// Master item baris komparasi berdasarkan kategori
-// Contoh: Kategori 'Logo Design' punya baris: "Logo transparency", "Vector file", "3D mockup"
 export const packageFeatures = pgTable(
   "package_features",
   {
@@ -185,7 +196,7 @@ export const packageFeatures = pgTable(
     categoryId: uuid("category_id")
       .references(() => categories.id, { onDelete: "cascade" })
       .notNull(),
-    name: varchar("name", { length: 255 }).notNull(), // e.g., "Vector file", "Printable file"
+    name: varchar("name", { length: 255 }).notNull(),
     type: packageFeatureTypeEnum("type").default("boolean").notNull(),
   },
   (table) => [index("package_features_category_idx").on(table.categoryId)],
@@ -206,7 +217,7 @@ export const gigPackages = pgTable(
       .notNull(),
     packageType: packageTypeEnum("package_type").notNull(),
     title: varchar("title", { length: 255 }).notNull(), // e.g. "STARTUP", "STANDARD", "PREMIUM"
-    description: text("description"), // Ringkasan singkat paket
+    description: text("description"),
     price: integer("price").notNull(),
     deliveryTimeDays: integer("delivery_time_days").notNull(),
     revisions: integer("revisions").notNull(),
@@ -214,7 +225,6 @@ export const gigPackages = pgTable(
   (table) => [index("gig_packages_gig_idx").on(table.gigId)],
 );
 
-// Junction table yang menyimpan nilai/status checklist tiap paket
 export const gigPackageFeatureValues = pgTable(
   "gig_package_feature_values",
   {
@@ -340,7 +350,6 @@ export const relations = defineRelations(
         to: r.gigs.id,
       }),
       featureValues: r.many.gigPackageFeatureValues(),
-      // Akses langsung Many-to-Many ke master feature
       features: r.many.packageFeatures({
         from: r.gigPackages.id.through(r.gigPackageFeatureValues.gigPackageId),
         to: r.packageFeatures.id.through(
