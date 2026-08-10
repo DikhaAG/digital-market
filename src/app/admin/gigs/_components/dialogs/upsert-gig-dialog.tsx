@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -47,11 +48,19 @@ interface UpsertGigDialogProps {
 
 export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const isEdit = !!gigToEdit;
+  const [open, setOpen] = useState(false); // 👈 State untuk mengontrol dialog open
   const { trpc: trpcClient, createOptions } = useGigMutation();
 
-  // 1. Fetching Master Data (Sellers & Categories Tree)
-  const { data: sellers } = trpc.admin.getAllSellers.useQuery();
-  const { data: categoryTree } = trpc.admin.getCategoryTree.useQuery();
+  // 1. Fetching Master Data (Hanya jika dialog sedang TERBUKA)
+  const { data: sellers } = trpc.admin.getAllSellers.useQuery(undefined, {
+    enabled: open,
+  });
+  const { data: categoryTree } = trpc.admin.getCategoryTree.useQuery(
+    undefined,
+    {
+      enabled: open,
+    },
+  );
 
   const subcategories =
     categoryTree?.flatMap((parent) => parent.subcategories) ?? [];
@@ -68,10 +77,8 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           slug: gigToEdit.slug,
           about: gigToEdit.about ?? "",
           coverImage: gigToEdit.coverImage ?? "",
-          // [gigAttributeOptions] Mapping array of Option IDs
           attributeOptionIds:
             gigToEdit.gigAttributes?.map((ga) => ga.attributeOptionId) ?? [],
-          // [gigPackages & gigPackageFeatureValues] Mapping 3 Tier Packages
           packages:
             gigToEdit.packages.length > 0
               ? gigToEdit.packages.map((pkg) => ({
@@ -149,15 +156,14 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const packagesWatch =
     useWatch({ control: form.control, name: "packages" }) ?? [];
 
-  // Validasi ID Kategori untuk mencegah error tRPC & bad request
   const isCategoryValid = Boolean(
     selectedCategoryId && selectedCategoryId.trim().length > 0,
   );
 
-  // 3. Fetch Metadata Entitas [attributes, attributeOptions, packageFeatures]
+  // 3. Fetch Metadata Entitas (Hanya jika Dialog Terbuka & Kategori Valid)
   const { data: catMeta } = trpc.admin.getCategoryGigMeta.useQuery(
     { categoryId: selectedCategoryId! },
-    { enabled: isCategoryValid },
+    { enabled: open && isCategoryValid }, // 👈 PREVENT FLOODING: Hanya aktif saat dialog terbuka
   );
 
   const mutation = trpcClient.admin.upsertGig.useMutation(
@@ -166,11 +172,14 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
       successMessage: isEdit
         ? "Gig berhasil diperbarui"
         : "Gig berhasil dipublikasikan",
+      onSuccess: () => setOpen(false),
     }),
   );
 
   return (
     <BaseAdminDialog
+      open={open}
+      onOpenChange={setOpen}
       trigger={
         isEdit ? (
           <Button
@@ -230,9 +239,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           </TabsTrigger>
         </TabsList>
 
-        {/* ==================================================================== */}
-        {/* TAB 1: OVERVIEW & ENTITAS [categories]                              */}
-        {/* ==================================================================== */}
+        {/* Tab Contents... */}
         <TabsContent value="overview" className="space-y-3 pt-3">
           <FormField
             control={form.control}
@@ -292,7 +299,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               )}
             />
 
-            {/* [categories] Field Selection */}
             <FormField
               control={form.control}
               name="categoryId"
@@ -391,9 +397,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           />
         </TabsContent>
 
-        {/* ==================================================================== */}
-        {/* TAB 2: ENTITAS [attributes, attributeOptions, gigAttributeOptions]  */}
-        {/* ==================================================================== */}
         <TabsContent value="attributes" className="space-y-3 pt-3">
           {!catMeta?.attributes || catMeta.attributes.length === 0 ? (
             <div className="text-center py-8 border border-dashed rounded-xl bg-muted/20">
@@ -403,7 +406,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
             </div>
           ) : (
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-              {/* Iterasi Atribut Master [attributes] */}
               {catMeta.attributes.map((attr) => (
                 <div
                   key={attr.id}
@@ -412,7 +414,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                   <span className="font-bold text-xs text-foreground block">
                     {attr.name}
                   </span>
-                  {/* Iterasi Opsi Atribut Master [attributeOptions] */}
                   <div className="flex flex-wrap gap-1.5">
                     {attr.options.map((opt) => {
                       const isChecked = attributeOptionIds.includes(opt.id);
@@ -420,7 +421,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                         <button
                           type="button"
                           key={opt.id}
-                          // Synchronize ke Junction Table [gigAttributeOptions]
                           onClick={() => {
                             if (isChecked) {
                               form.setValue(
@@ -454,12 +454,8 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           )}
         </TabsContent>
 
-        {/* ==================================================================== */}
-        {/* TAB 3: ENTITAS [packageFeatures, gigPackages, gigPackageFeatureValues] */}
-        {/* ==================================================================== */}
         <TabsContent value="packages" className="space-y-3 pt-3">
           <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
-            {/* Iterasi Paket [gigPackages] */}
             {(["basic", "standard", "premium"] as const).map((pType, pIdx) => (
               <div
                 key={pType}
@@ -564,7 +560,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                   />
                 </div>
 
-                {/* Checklist & Value Dinamis [packageFeatures & gigPackageFeatureValues] */}
                 {catMeta?.packageFeatures &&
                   catMeta.packageFeatures.length > 0 && (
                     <div className="border-t border-border/60 pt-3 space-y-2">
@@ -642,7 +637,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                                 </span>
                               </div>
 
-                              {/* Input Dinamis berdasarkan Enum Type (boolean | text | number) */}
                               <div className="flex items-center gap-2 shrink-0">
                                 {(feat.type === "text" ||
                                   feat.type === "number") && (

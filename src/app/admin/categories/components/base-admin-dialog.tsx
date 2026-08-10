@@ -26,6 +26,8 @@ export interface BaseAdminDialogProps<TFieldValues extends FieldValues> {
   submitIcon?: ReactNode;
   maxWidth?: "sm" | "md";
   children: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function BaseAdminDialog<TFieldValues extends FieldValues>({
@@ -39,11 +41,20 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
   submitIcon = <Sparkles className="h-4 w-4" />,
   maxWidth = "sm",
   children,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
 }: BaseAdminDialogProps<TFieldValues>) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
 
   const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
+    if (isControlled) {
+      setControlledOpen?.(isOpen);
+    } else {
+      setInternalOpen(isOpen);
+    }
     if (!isOpen) form.reset();
   };
 
@@ -63,7 +74,6 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
             </DialogDescription>
           )}
         </DialogHeader>
-
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
