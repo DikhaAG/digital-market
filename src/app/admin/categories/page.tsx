@@ -1,18 +1,14 @@
+// src/app/admin/categories/page.tsx
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateParentCategoryDialog } from "./components/dialogs";
 import { ParentCategoryCard } from "./components/parent-category-card";
+import { useCategoryTreeController } from "./_hooks/use-category-tree-controller";
 
 export default function CategoryAdminPage() {
-  const { data: categoryTree, isLoading } = trpc.admin.getCategoryTree.useQuery(
-    undefined,
-    {
-      staleTime: 1000 * 60 * 5, // 👈 Cache data selama 5 menit
-      refetchOnWindowFocus: false, // 👈 Cegah query ulang otomatis saat klik tab browser
-    },
-  );
+  const { categoryTree, isLoading, stats } = useCategoryTreeController();
+
   return (
     <div className="space-y-8 pb-16">
       {/* Header Section */}
@@ -22,8 +18,8 @@ export default function CategoryAdminPage() {
             Categories & Relational Manager
           </h2>
           <p className="text-sm text-muted-foreground">
-            Kelola hirarki kategori, filter kustom atribut, serta checklist
-            fitur paket komparasi.
+            Kelola {stats.totalParents} kategori utama, {stats.totalSubs}{" "}
+            sub-kategori, dan filter atribut kustom.
           </p>
         </div>
         <CreateParentCategoryDialog />
@@ -50,7 +46,7 @@ export default function CategoryAdminPage() {
               <Skeleton className="h-24 w-full rounded-xl" />
             </div>
           ))
-        ) : categoryTree && categoryTree.length > 0 ? (
+        ) : categoryTree.length > 0 ? (
           categoryTree.map((parent) => (
             <ParentCategoryCard key={parent.id} parent={parent} />
           ))

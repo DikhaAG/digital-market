@@ -1,10 +1,10 @@
+// src/app/admin/categories/components/filter-attributes-tab.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { trpc } from "@/lib/trpc/client";
-import { toast } from "sonner";
 import { Loader2, Plus, Tag, Trash2, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +14,7 @@ import {
   type AttributeInput,
   type AttributeOptionFormInput,
 } from "../_schemas/category-admin.schema";
+import { useCategoryActions } from "../_hooks/use-category-actions";
 
 interface AttributeOption {
   id: string;
@@ -35,7 +36,13 @@ export function FilterAttributesTab({
   categoryId: string;
   attributes: Attribute[];
 }) {
-  const utils = trpc.useUtils();
+  const {
+    createAttribute,
+    isCreatingAttribute,
+    deleteAttribute,
+    isDeletingAttribute,
+    deletingAttributeId,
+  } = useCategoryActions();
 
   const {
     register,
@@ -46,36 +53,19 @@ export function FilterAttributesTab({
     resolver: zodResolver(attributeSchema),
   });
 
-  const createAttrMutation = trpc.admin.createAttribute.useMutation({
-    onSuccess: () => {
-      toast.success("Atribut filter berhasil ditambahkan");
-      utils.admin.getCategoryTree.invalidate();
-      reset();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const deleteAttrMutation = trpc.admin.deleteAttribute.useMutation({
-    onSuccess: () => {
-      toast.success("Atribut dihapus");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const onAddAttribute = (data: AttributeInput) => {
+    createAttribute({
+      categoryId,
+      name: data.name,
+      slug: slugify(data.name),
+    });
+    reset();
+  };
 
   return (
     <div className="pt-3 space-y-4">
       {/* Form Tambah Atribut */}
-      <form
-        onSubmit={handleSubmit((data) =>
-          createAttrMutation.mutate({
-            categoryId,
-            name: data.name,
-            slug: slugify(data.name),
-          }),
-        )}
-        className="space-y-1"
-      >
+      <form onSubmit={handleSubmit(onAddAttribute)} className="space-y-1">
         <div className="flex items-center gap-2">
           <Input
             placeholder="Nama Atribut (Contoh: Programming Language)"
@@ -86,9 +76,9 @@ export function FilterAttributesTab({
             type="submit"
             size="sm"
             className="h-8 text-xs font-semibold"
-            disabled={createAttrMutation.isPending}
+            disabled={isCreatingAttribute}
           >
-            {createAttrMutation.isPending ? (
+            {isCreatingAttribute ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <>
@@ -107,10 +97,8 @@ export function FilterAttributesTab({
       {/* Grid Daftar Atribut */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
         {attributes.map((attr) => {
-          // Check jika mutasi delete spesifik untuk ID item ini
           const isDeletingThisAttr =
-            deleteAttrMutation.isPending &&
-            deleteAttrMutation.variables?.id === attr.id;
+            isDeletingAttribute && deletingAttributeId === attr.id;
 
           return (
             <div
@@ -130,9 +118,9 @@ export function FilterAttributesTab({
                 <button
                   type="button"
                   aria-label={`Hapus atribut ${attr.name}`}
-                  onClick={() => deleteAttrMutation.mutate({ id: attr.id })}
+                  onClick={() => deleteAttribute({ id: attr.id })}
                   disabled={isDeletingThisAttr}
-                  className="text-muted-foreground hover:text-destructive p-1 transition-colors disabled:opacity-50"
+                  className="text-muted-foreground hover:text-destructive p-1 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isDeletingThisAttr ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -161,9 +149,14 @@ function AttributeOptionsList({
   attributeId: string;
   options: AttributeOption[];
 }) {
-  const utils = trpc.useUtils();
+  const {
+    createAttributeOption,
+    isCreatingAttributeOption,
+    deleteAttributeOption,
+    isDeletingAttributeOption,
+    deletingOptionId,
+  } = useCategoryActions();
 
-  // Gunakan Schema Khusus Form UI
   const {
     register,
     handleSubmit,
@@ -173,22 +166,14 @@ function AttributeOptionsList({
     resolver: zodResolver(attributeOptionFormSchema),
   });
 
-  const createOptionMutation = trpc.admin.createAttributeOption.useMutation({
-    onSuccess: () => {
-      toast.success("Opsi ditambahkan");
-      utils.admin.getCategoryTree.invalidate();
-      reset();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const deleteOptionMutation = trpc.admin.deleteAttributeOption.useMutation({
-    onSuccess: () => {
-      toast.success("Opsi dihapus");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const onAddOption = (data: AttributeOptionFormInput) => {
+    createAttributeOption({
+      attributeId,
+      label: data.label,
+      value: slugify(data.label),
+    });
+    reset();
+  };
 
   return (
     <div className="space-y-2">
@@ -196,8 +181,7 @@ function AttributeOptionsList({
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => {
           const isDeletingThisOpt =
-            deleteOptionMutation.isPending &&
-            deleteOptionMutation.variables?.id === opt.id;
+            isDeletingAttributeOption && deletingOptionId === opt.id;
 
           return (
             <span
@@ -208,9 +192,9 @@ function AttributeOptionsList({
               <button
                 type="button"
                 aria-label={`Hapus opsi ${opt.label}`}
-                onClick={() => deleteOptionMutation.mutate({ id: opt.id })}
+                onClick={() => deleteAttributeOption({ id: opt.id })}
                 disabled={isDeletingThisOpt}
-                className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isDeletingThisOpt ? (
                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
@@ -224,16 +208,7 @@ function AttributeOptionsList({
       </div>
 
       {/* Form Tambah Opsi */}
-      <form
-        onSubmit={handleSubmit((data) =>
-          createOptionMutation.mutate({
-            attributeId,
-            label: data.label,
-            value: slugify(data.label), // Generasi value otomatis saat submit
-          }),
-        )}
-        className="space-y-1 pt-1"
-      >
+      <form onSubmit={handleSubmit(onAddOption)} className="space-y-1 pt-1">
         <div className="flex items-center gap-1.5">
           <Input
             placeholder="+ Opsi (misal: Python)"
@@ -245,9 +220,9 @@ function AttributeOptionsList({
             size="sm"
             variant="secondary"
             className="h-7 text-[11px] px-2 shrink-0 font-semibold"
-            disabled={createOptionMutation.isPending}
+            disabled={isCreatingAttributeOption}
           >
-            {createOptionMutation.isPending ? (
+            {isCreatingAttributeOption ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               "Tambah"

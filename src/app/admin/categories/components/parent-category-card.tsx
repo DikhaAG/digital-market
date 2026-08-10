@@ -1,6 +1,9 @@
+// src/app/admin/categories/components/parent-category-card.tsx
 "use client";
 
+import { memo } from "react";
 import { Folder } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { CreateSubCategoryDialog, EditCategoryDialog } from "./dialogs";
@@ -12,8 +15,11 @@ interface ParentCategoryCardProps {
   parent: ParentCategoryItem;
 }
 
-export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
+export const ParentCategoryCard = memo(function ParentCategoryCard({
+  parent,
+}: ParentCategoryCardProps) {
   const { trpc, createOptions } = useCategoryTreeMutation();
+
   const deleteMutation = trpc.admin.deleteCategory.useMutation(
     createOptions({ successMessage: "Kategori utama berhasil dihapus" }),
   );
@@ -71,8 +77,7 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
               Belum ada sub-kategori di bawah {parent.name}.
             </p>
             <p className="text-[11px] text-muted-foreground/70">
-              Klik tombol &quot;+ Sub-kategori&quot; di atas untuk
-              menambahkannya.
+              Klik tombol &quot;+ Sub-kategori&quot; di atas untuk mengelolanya.
             </p>
           </div>
         ) : (
@@ -83,4 +88,4 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
       </div>
     </div>
   );
-}
+});
