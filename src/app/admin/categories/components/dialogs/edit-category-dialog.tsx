@@ -40,7 +40,6 @@ export function EditCategoryDialog({
 
   const { trpc, createOptions } = useCategoryTreeMutation();
 
-  // DX Best Approach: Cukup definisikan pesan loading & sukses di sini!
   const mutation = trpc.admin.updateCategory.useMutation(
     createOptions({
       loadingMessage: "Memperbarui kategori...",
@@ -55,8 +54,9 @@ export function EditCategoryDialog({
         <Button
           size="icon"
           variant="ghost"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          title="Edit Kategori"
+          aria-label={`Edit ${category.name}`}
+          title={`Edit ${category.name}`}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0"
         >
           <Pencil className="h-4 w-4" />
         </Button>

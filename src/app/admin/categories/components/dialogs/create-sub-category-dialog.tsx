@@ -43,14 +43,16 @@ export function CreateSubCategoryDialog({
         <Button
           size="sm"
           variant="secondary"
-          className="h-8 text-xs font-semibold gap-1.5 rounded-lg border border-border/40 hover:bg-accent"
+          className="h-8 text-xs font-semibold gap-1.5 rounded-lg border border-border/50 hover:bg-accent shrink-0 px-2.5 sm:px-3"
         >
           <Plus className="h-3.5 w-3.5" />
-          <span>Sub-kategori</span>
+          <span>
+            Sub-kategori <span className="hidden sm:inline">Baru</span>
+          </span>
         </Button>
       }
       title="Tambah Sub-kategori"
-      description={`Sub-kategori di bawah induk ${parentName}.`}
+      description={`Menambahkan sub-kategori baru di bawah induk "${parentName}".`}
       form={form}
       onSubmit={(data) =>
         mutation.mutate({
