@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import {
   slugify,
   type GigFormValues,
@@ -36,11 +37,10 @@ export function GigOverviewTab({
   isEdit,
   isPending,
 }: GigOverviewTabProps) {
-  // 💡 Mengambil instance form dari FormProvider
   const form = useFormContext<GigFormValues>();
 
   return (
-    <div className="space-y-3 pt-3">
+    <div className="space-y-4 pt-3">
       {/* Field: Title */}
       <FormField
         control={form.control}
@@ -57,10 +57,35 @@ export function GigOverviewTab({
                 {...field}
                 onChange={(e) => {
                   field.onChange(e);
-                  if (!isEdit) {
-                    form.setValue("slug", slugify(e.target.value));
+                  // Hanya auto-slug jika mode Create DAN user belum mengedit field slug secara manual
+                  const isSlugDirty = form.getFieldState("slug").isDirty;
+                  if (!isEdit && !isSlugDirty) {
+                    form.setValue("slug", slugify(e.target.value), {
+                      shouldValidate: true,
+                    });
                   }
                 }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Field: Slug */}
+      <FormField
+        control={form.control}
+        name="slug"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+              URL Slug
+            </FormLabel>
+            <FormControl>
+              <Input
+                placeholder="modern-fullstack-web-application"
+                disabled={isPending}
+                {...field}
               />
             </FormControl>
             <FormMessage />
@@ -80,7 +105,7 @@ export function GigOverviewTab({
               </FormLabel>
               <Select
                 onValueChange={field.onChange}
-                value={field.value}
+                value={field.value ?? undefined}
                 disabled={isPending}
               >
                 <FormControl>
@@ -111,7 +136,7 @@ export function GigOverviewTab({
               </FormLabel>
               <Select
                 onValueChange={field.onChange}
-                value={field.value}
+                value={field.value ?? undefined}
                 disabled={isPending}
               >
                 <FormControl>
@@ -133,49 +158,28 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* Field Group: Slug & Cover Image */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                URL Slug
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="modern-fullstack-app"
-                  disabled={isPending}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="coverImage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                URL Cover Image
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="https://cdn.example.com/cover.jpg"
-                  disabled={isPending}
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      {/* Field: Cover Image (Single Cloudinary Upload Source) */}
+      <FormField
+        control={form.control}
+        name="coverImage"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+              Sampul Gambar Gig
+            </FormLabel>
+            <FormControl>
+              <ImageUploader
+                value={field.value}
+                onChange={field.onChange}
+                folder="marketplace/gigs"
+                disabled={isPending}
+                aspectRatio="video"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       {/* Field: About */}
       <FormField
@@ -189,7 +193,7 @@ export function GigOverviewTab({
             <FormControl>
               <Textarea
                 placeholder="Jelaskan detail keahlian dan keunggulan jasa ini..."
-                className="min-h-20 text-xs resize-none"
+                className="min-h-24 text-xs resize-none"
                 disabled={isPending}
                 {...field}
                 value={field.value ?? ""}
