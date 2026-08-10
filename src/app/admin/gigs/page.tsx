@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { UpsertGigDialog } from "./_components/dialogs/upsert-gig-dialog";
 import { GigCard } from "./_components/gig-card";
+import { type GigAuditItem } from "./_schemas/gig-admin-schema"; // 👈 Impor tipe data terpusat
 
 export default function GigsAdminPage() {
   const [search, setSearch] = useState("");
@@ -23,7 +24,7 @@ export default function GigsAdminPage() {
       sortOrder: "desc",
     },
     {
-      staleTime: 1000 * 60 * 3, // Cache data selama 3 menit[cite: 23]
+      staleTime: 1000 * 60 * 3, // Cache data selama 3 menit
       refetchOnWindowFocus: false,
     },
   );
@@ -54,7 +55,7 @@ export default function GigsAdminPage() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setPage(1); // Reset otomatis ke halaman pertama saat mencari[cite: 23]
+              setPage(1); // Reset otomatis ke halaman pertama saat mencari
             }}
           />
         </div>
@@ -81,7 +82,8 @@ export default function GigsAdminPage() {
       ) : data?.items && data.items.length > 0 ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {data.items.map((gig) => (
+            {/* 🔴 FIX: Berikan tipe eksplisit (gig: GigAuditItem) */}
+            {data.items.map((gig: GigAuditItem) => (
               <GigCard key={gig.id} gig={gig} />
             ))}
           </div>

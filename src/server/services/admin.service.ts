@@ -18,7 +18,6 @@ export class AdminService {
    * Menjalankan kueri pohon kategori & kueri GROUP BY Gig secara paralel (< 30ms)
    */
   static async getCategoryTree() {
-    // 1. Kueri hitung jumlah Gig per Kategori (Memanfaatkan indeks gigs_category_idx)
     const gigCountsQuery = db
       .select({
         categoryId: gigs.categoryId,
@@ -27,7 +26,6 @@ export class AdminService {
       .from(gigs)
       .groupBy(gigs.categoryId);
 
-    // 2. Kueri Pohon Kategori Utama (Parent & Subcategories)
     const categoryTreeQuery = db.query.categories.findMany({
       where: { parentId: { isNull: true } },
       columns: {
@@ -86,18 +84,15 @@ export class AdminService {
       orderBy: (cat, { asc }) => [asc(cat.name)],
     });
 
-    // Eksekusi kedua kueri secara paralel untuk latensi minimal
     const [gigCounts, tree] = await Promise.all([
       gigCountsQuery,
       categoryTreeQuery,
     ]);
 
-    // Buat Map O(1) Lookup untuk pencocokan ID kategori -> jumlah Gig
     const gigCountMap = new Map(
       gigCounts.map((item) => [item.categoryId, Number(item.totalGigs)]),
     );
 
-    // Sisipkan properti gigCount ke tiap sub-kategori
     return tree.map((parent) => ({
       ...parent,
       subcategories: parent.subcategories.map((sub) => ({
@@ -108,13 +103,13 @@ export class AdminService {
   }
 
   /**
-   * Optimized Upsert Gig dengan Bulk Batch Operations
+   * Optimized Upsert Gig dengan Eksekusi Batch Transaksi
    */
   static async upsertGig(input: GigFormValues) {
     return await db.transaction(async (tx: Transaction) => {
       let gigId = input.id;
 
-      // 1. Upsert Data Utama Gig
+      // 1. [gigs] Insert or Update Data Utama
       if (gigId) {
         await tx
           .update(gigs)
@@ -142,7 +137,7 @@ export class AdminService {
         gigId = inserted.id;
       }
 
-      // 2. Sync Junction Attribute Options
+      // 2. [gigAttributeOptions] Sync Junction Filter Atribut
       await tx
         .delete(gigAttributeOptions)
         .where(eq(gigAttributeOptions.gigId, gigId));
@@ -156,7 +151,7 @@ export class AdminService {
         );
       }
 
-      // 3. Sync Packages (Optimized Batch Insertion)
+      // 3. [gigPackages & gigPackageFeatureValues] Sync Paket Harga & Fitur
       await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
 
       if (input.packages.length > 0) {
@@ -204,7 +199,7 @@ export class AdminService {
   }
 
   /**
-   * Audit Gig dengan RQB v2
+   * Audit Gig dengan RQB & Pagination
    */
   static async getGigsForAudit(input: {
     search?: string;
@@ -231,10 +226,10 @@ export class AdminService {
       with: {
         seller: { columns: { id: true, name: true, image: true } },
         category: { columns: { id: true, name: true, slug: true } },
-        gigAttributes: true, // 👈 Tambahkan relasi ini
+        gigAttributes: true,
         packages: {
           with: {
-            featureValues: true, // 👈 Sertakan feature values dan kolom lengkap package
+            featureValues: true,
           },
         },
       },

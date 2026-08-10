@@ -2,11 +2,20 @@
 
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Pencil, Check, Sparkles } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Check,
+  Sparkles,
+  SlidersHorizontal,
+  Package,
+  Info,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FormControl,
@@ -40,13 +49,14 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const isEdit = !!gigToEdit;
   const { trpc: trpcClient, createOptions } = useGigMutation();
 
-  // Query Data Pembantu (Sellers & Categories)[cite: 23]
+  // 1. Fetching Master Data (Sellers & Categories Tree)
   const { data: sellers } = trpc.admin.getAllSellers.useQuery();
   const { data: categoryTree } = trpc.admin.getCategoryTree.useQuery();
 
   const subcategories =
     categoryTree?.flatMap((parent) => parent.subcategories) ?? [];
 
+  // 2. React Hook Form Initialization
   const form = useForm<GigFormValues>({
     resolver: zodResolver(gigFormSchema),
     defaultValues: gigToEdit
@@ -58,8 +68,10 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           slug: gigToEdit.slug,
           about: gigToEdit.about ?? "",
           coverImage: gigToEdit.coverImage ?? "",
+          // [gigAttributeOptions] Mapping array of Option IDs
           attributeOptionIds:
             gigToEdit.gigAttributes?.map((ga) => ga.attributeOptionId) ?? [],
+          // [gigPackages & gigPackageFeatureValues] Mapping 3 Tier Packages
           packages:
             gigToEdit.packages.length > 0
               ? gigToEdit.packages.map((pkg) => ({
@@ -100,7 +112,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
             {
               packageType: "basic",
               title: "Basic Package",
-              description: "",
+              description: "Paket dasar pencakupan standar",
               price: 15,
               deliveryTimeDays: 3,
               revisions: 2,
@@ -109,7 +121,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
             {
               packageType: "standard",
               title: "Standard Package",
-              description: "",
+              description: "Paket menengah paling populer",
               price: 35,
               deliveryTimeDays: 2,
               revisions: 5,
@@ -118,7 +130,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
             {
               packageType: "premium",
               title: "Premium Package",
-              description: "",
+              description: "Paket komprehensif skala penuh",
               price: 75,
               deliveryTimeDays: 1,
               revisions: 99,
@@ -137,11 +149,12 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const packagesWatch =
     useWatch({ control: form.control, name: "packages" }) ?? [];
 
+  // Validasi ID Kategori untuk mencegah error tRPC & bad request
   const isCategoryValid = Boolean(
     selectedCategoryId && selectedCategoryId.trim().length > 0,
   );
 
-  // Query Metadata Atribut & Fitur Kategori Terpilih
+  // 3. Fetch Metadata Entitas [attributes, attributeOptions, packageFeatures]
   const { data: catMeta } = trpc.admin.getCategoryGigMeta.useQuery(
     { categoryId: selectedCategoryId! },
     { enabled: isCategoryValid },
@@ -177,7 +190,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
         )
       }
       title={isEdit ? `Edit Gig: ${gigToEdit.title}` : "Buat Gig Baru"}
-      description="Lengkapi konfigurasi informasi, filter atribut kustom, dan paket harga."
+      description="Lengkapi konfigurasi informasi umum, filter atribut kustom, dan matriks fitur paket harga."
       form={form}
       onSubmit={(data) => {
         mutation.mutate({
@@ -194,27 +207,32 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
         <TabsList className="bg-muted/70 grid grid-cols-3 h-auto p-1 gap-1 rounded-xl">
           <TabsTrigger
             value="overview"
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background"
+            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
           >
-            1. Overview
+            <Info className="h-3.5 w-3.5" />
+            <span>1. Overview</span>
           </TabsTrigger>
           <TabsTrigger
             value="attributes"
-            disabled={!selectedCategoryId}
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background"
+            disabled={!isCategoryValid}
+            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
           >
-            2. Atribut Filter
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>2. Atribut ({attributeOptionIds.length})</span>
           </TabsTrigger>
           <TabsTrigger
             value="packages"
-            disabled={!selectedCategoryId}
-            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background"
+            disabled={!isCategoryValid}
+            className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
           >
-            3. Paket Harga
+            <Package className="h-3.5 w-3.5" />
+            <span>3. Paket Harga</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: OVERVIEW */}
+        {/* ==================================================================== */}
+        {/* TAB 1: OVERVIEW & ENTITAS [categories]                              */}
+        {/* ==================================================================== */}
         <TabsContent value="overview" className="space-y-3 pt-3">
           <FormField
             control={form.control}
@@ -274,6 +292,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               )}
             />
 
+            {/* [categories] Field Selection */}
             <FormField
               control={form.control}
               name="categoryId"
@@ -289,7 +308,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                   >
                     <FormControl>
                       <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="Pilih Kategori" />
+                        <SelectValue placeholder="Pilih Sub-Kategori" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -372,7 +391,9 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           />
         </TabsContent>
 
-        {/* TAB 2: ATRIBUT FILTER DINAMIS */}
+        {/* ==================================================================== */}
+        {/* TAB 2: ENTITAS [attributes, attributeOptions, gigAttributeOptions]  */}
+        {/* ==================================================================== */}
         <TabsContent value="attributes" className="space-y-3 pt-3">
           {!catMeta?.attributes || catMeta.attributes.length === 0 ? (
             <div className="text-center py-8 border border-dashed rounded-xl bg-muted/20">
@@ -381,15 +402,17 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {/* Iterasi Atribut Master [attributes] */}
               {catMeta.attributes.map((attr) => (
                 <div
                   key={attr.id}
-                  className="p-3 rounded-xl border border-border bg-card/60 space-y-2"
+                  className="p-3 rounded-xl border border-border/80 bg-card/60 space-y-2"
                 >
                   <span className="font-bold text-xs text-foreground block">
                     {attr.name}
                   </span>
+                  {/* Iterasi Opsi Atribut Master [attributeOptions] */}
                   <div className="flex flex-wrap gap-1.5">
                     {attr.options.map((opt) => {
                       const isChecked = attributeOptionIds.includes(opt.id);
@@ -397,6 +420,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                         <button
                           type="button"
                           key={opt.id}
+                          // Synchronize ke Junction Table [gigAttributeOptions]
                           onClick={() => {
                             if (isChecked) {
                               form.setValue(
@@ -412,13 +436,13 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                               ]);
                             }
                           }}
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
+                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 cursor-pointer ${
                             isChecked
                               ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                              : "bg-muted/50 border-border hover:bg-muted"
+                              : "bg-muted/50 border-border hover:bg-muted text-muted-foreground"
                           }`}
                         >
-                          {isChecked && <Check className="h-3 w-3" />}
+                          {isChecked && <Check className="h-3 w-3 shrink-0" />}
                           <span>{opt.label}</span>
                         </button>
                       );
@@ -430,13 +454,16 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
           )}
         </TabsContent>
 
-        {/* TAB 3: PAKET HARGA & CHECKLIST FITUR */}
+        {/* ==================================================================== */}
+        {/* TAB 3: ENTITAS [packageFeatures, gigPackages, gigPackageFeatureValues] */}
+        {/* ==================================================================== */}
         <TabsContent value="packages" className="space-y-3 pt-3">
-          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+            {/* Iterasi Paket [gigPackages] */}
             {(["basic", "standard", "premium"] as const).map((pType, pIdx) => (
               <div
                 key={pType}
-                className="p-3.5 rounded-xl border border-border bg-card space-y-3"
+                className="p-3.5 rounded-xl border border-border bg-card space-y-3 shadow-2xs"
               >
                 <div className="flex items-center justify-between">
                   <Badge
@@ -453,6 +480,9 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                     name={`packages.${pIdx}.title`}
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">
+                          Judul Paket
+                        </FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Judul Paket"
@@ -469,6 +499,9 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                     name={`packages.${pIdx}.price`}
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">
+                          Harga ($)
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -485,60 +518,159 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                   />
                 </div>
 
-                {/* Checklist Fitur Kategori */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`packages.${pIdx}.deliveryTimeDays`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">
+                          Waktu Pengerjaan (Hari)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            className="h-8 text-xs"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(e.target.valueAsNumber || 1)
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`packages.${pIdx}.revisions`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold text-muted-foreground uppercase">
+                          Jumlah Revisi
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            className="h-8 text-xs"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(e.target.valueAsNumber || 0)
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Checklist & Value Dinamis [packageFeatures & gigPackageFeatureValues] */}
                 {catMeta?.packageFeatures &&
                   catMeta.packageFeatures.length > 0 && (
-                    <div className="border-t border-border/50 pt-2.5 space-y-1.5">
-                      <span className="text-[11px] font-bold text-muted-foreground block">
-                        Fitur Paket:
+                    <div className="border-t border-border/60 pt-3 space-y-2">
+                      <span className="text-[11px] font-extrabold text-foreground block">
+                        Fitur Matriks [packageFeatures]:
                       </span>
-                      {catMeta.packageFeatures.map((feat) => {
-                        const currentFV =
-                          packagesWatch[pIdx]?.featureValues ?? [];
-                        const existIdx = currentFV.findIndex(
-                          (fv) => fv.packageFeatureId === feat.id,
-                        );
-                        const isIncluded =
-                          existIdx !== -1
-                            ? currentFV[existIdx]?.isIncluded
-                            : false;
 
-                        return (
-                          <div
-                            key={feat.id}
-                            className="flex items-center justify-between text-xs py-0.5"
-                          >
-                            <span className="truncate text-muted-foreground">
-                              {feat.name}
-                            </span>
-                            <input
-                              type="checkbox"
-                              checked={isIncluded ?? false}
-                              onChange={(e) => {
-                                const updatedFV = [...currentFV];
-                                const targetVal = e.target.checked;
-                                if (existIdx !== -1) {
-                                  updatedFV[existIdx] = {
-                                    ...updatedFV[existIdx],
-                                    isIncluded: targetVal,
-                                  };
-                                } else {
-                                  updatedFV.push({
-                                    packageFeatureId: feat.id,
-                                    isIncluded: targetVal,
-                                    value: null,
-                                  });
-                                }
-                                form.setValue(
-                                  `packages.${pIdx}.featureValues`,
-                                  updatedFV,
-                                );
-                              }}
-                              className="h-4 w-4 rounded accent-primary cursor-pointer"
-                            />
-                          </div>
-                        );
-                      })}
+                      <div className="space-y-2">
+                        {catMeta.packageFeatures.map((feat) => {
+                          const currentFV =
+                            packagesWatch[pIdx]?.featureValues ?? [];
+                          const existIdx = currentFV.findIndex(
+                            (fv) => fv.packageFeatureId === feat.id,
+                          );
+                          const isIncluded =
+                            existIdx !== -1
+                              ? currentFV[existIdx]?.isIncluded
+                              : false;
+                          const customValue =
+                            existIdx !== -1
+                              ? (currentFV[existIdx]?.value ?? "")
+                              : "";
+
+                          const handleToggleChange = (checked: boolean) => {
+                            const updatedFV = [...currentFV];
+                            if (existIdx !== -1) {
+                              updatedFV[existIdx] = {
+                                ...updatedFV[existIdx],
+                                isIncluded: checked,
+                              };
+                            } else {
+                              updatedFV.push({
+                                packageFeatureId: feat.id,
+                                isIncluded: checked,
+                                value: null,
+                              });
+                            }
+                            form.setValue(
+                              `packages.${pIdx}.featureValues`,
+                              updatedFV,
+                            );
+                          };
+
+                          const handleValueChange = (val: string) => {
+                            const updatedFV = [...currentFV];
+                            if (existIdx !== -1) {
+                              updatedFV[existIdx] = {
+                                ...updatedFV[existIdx],
+                                value: val,
+                              };
+                            } else {
+                              updatedFV.push({
+                                packageFeatureId: feat.id,
+                                isIncluded: true,
+                                value: val,
+                              });
+                            }
+                            form.setValue(
+                              `packages.${pIdx}.featureValues`,
+                              updatedFV,
+                            );
+                          };
+
+                          return (
+                            <div
+                              key={feat.id}
+                              className="p-2 rounded-lg border border-border/40 bg-muted/20 flex items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium text-foreground truncate block">
+                                  {feat.name}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground uppercase font-mono">
+                                  Tipe: {feat.type}
+                                </span>
+                              </div>
+
+                              {/* Input Dinamis berdasarkan Enum Type (boolean | text | number) */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                {(feat.type === "text" ||
+                                  feat.type === "number") && (
+                                  <Input
+                                    type={
+                                      feat.type === "number" ? "number" : "text"
+                                    }
+                                    placeholder={
+                                      feat.type === "number" ? "Jml" : "Nilai"
+                                    }
+                                    value={customValue}
+                                    disabled={!isIncluded}
+                                    onChange={(e) =>
+                                      handleValueChange(e.target.value)
+                                    }
+                                    className="h-7 w-20 text-[11px]"
+                                  />
+                                )}
+
+                                <Switch
+                                  checked={isIncluded ?? false}
+                                  onCheckedChange={handleToggleChange}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
               </div>
