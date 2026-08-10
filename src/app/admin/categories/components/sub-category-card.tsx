@@ -4,6 +4,7 @@ import { Layers, CheckSquare, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
+import { EditCategoryDialog } from "./dialogs"; // 👈 Import EditCategoryDialog
 import { PackageFeaturesTab } from "./package-features-tab";
 import { FilterAttributesTab } from "./filter-attributes-tab";
 import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
@@ -32,13 +33,22 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
             {sub.gigs.length} Gigs
           </Badge>
         </div>
-        <DeleteConfirmDialog
-          title={`Hapus sub-kategori "${sub.name}"?`}
-          description="Tindakan ini tidak dapat dibatalkan."
-          onConfirm={() => deleteMutation.mutate({ id: sub.id })}
-          isPending={deleteMutation.isPending}
-        />
+
+        {/* Action Group Header */}
+        <div className="flex items-center gap-1">
+          <EditCategoryDialog
+            category={sub}
+            title={`Edit Sub-kategori "${sub.name}"`}
+          />
+          <DeleteConfirmDialog
+            title={`Hapus sub-kategori "${sub.name}"?`}
+            description="Tindakan ini tidak dapat dibatalkan."
+            onConfirm={() => deleteMutation.mutate({ id: sub.id })}
+            isPending={deleteMutation.isPending}
+          />
+        </div>
       </div>
+
       <Tabs defaultValue="features" className="w-full">
         <TabsList className="bg-muted/60 h-9 p-1">
           <TabsTrigger

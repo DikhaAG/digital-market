@@ -3,7 +3,7 @@
 import { Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
-import { CreateSubCategoryDialog } from "./dialogs";
+import { CreateSubCategoryDialog, EditCategoryDialog } from "./dialogs"; // 👈 Import EditCategoryDialog
 import { SubCategoryCard } from "./sub-category-card";
 import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
 import { type ParentCategoryItem } from "../_schemas/category-admin.schema";
@@ -39,10 +39,16 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Action Group Header */}
+        <div className="flex items-center gap-1.5">
           <CreateSubCategoryDialog
             parentId={parent.id}
             parentName={parent.name}
+          />
+          <EditCategoryDialog
+            category={parent}
+            title={`Edit Kategori Utama "${parent.name}"`}
           />
           <DeleteConfirmDialog
             title={`Hapus kategori "${parent.name}"?`}
@@ -52,6 +58,7 @@ export function ParentCategoryCard({ parent }: ParentCategoryCardProps) {
           />
         </div>
       </div>
+
       <div className="p-4 sm:p-6 space-y-6">
         {parent.subcategories.length === 0 ? (
           <p className="text-xs text-muted-foreground italic text-center py-4">

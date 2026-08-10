@@ -10,6 +10,9 @@ import {
   gigs,
 } from "@/lib/db/schema";
 import { gigFormSchema } from "@/lib/validations/gig";
+import {
+  updateCategorySchema, // 👈 Import skema terpusat
+} from "@/app/admin/categories/_schemas/category-admin.schema";
 import { AdminService } from "@/server/services/admin.service";
 
 export const adminRouter = router({
@@ -138,15 +141,7 @@ export const adminRouter = router({
     }),
 
   updateCategory: adminProcedure
-    .input(
-      z.object({
-        id: z.uuid(),
-        name: z.string().min(2),
-        slug: z.string().min(2),
-        icon: z.string().optional().nullable(),
-        image: z.string().optional().nullable(),
-      }),
-    )
+    .input(updateCategorySchema)
     .mutation(async ({ input }) => {
       const [updated] = await db
         .update(categories)

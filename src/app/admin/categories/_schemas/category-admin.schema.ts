@@ -55,6 +55,19 @@ export const attributeOptionSchema = z.object({
   value: z.string().min(1, { message: "Nilai value tidak boleh kosong" }),
 });
 
+export const updateCategorySchema = z.object({
+  id: z.string().min(1, { message: "ID Kategori harus berupa UUID valid" }),
+  name: z.string().min(2, { message: "Nama minimal 2 karakter" }),
+  slug: z.string().min(2, { message: "Slug minimal 2 karakter" }),
+  icon: z.string().optional().nullable(),
+  image: z
+    .url({ message: "URL Gambar CDN tidak valid" })
+    .optional()
+    .or(z.literal(""))
+    .nullable(),
+});
+
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type ParentCategoryInput = z.infer<typeof parentCategorySchema>;
 export type SubCategoryInput = z.infer<typeof subCategorySchema>;
 export type PackageFeatureInput = z.infer<typeof packageFeatureSchema>;

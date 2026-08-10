@@ -6,9 +6,13 @@ import { CreateParentCategoryDialog } from "./components/dialogs";
 import { ParentCategoryCard } from "./components/parent-category-card";
 
 export default function CategoryAdminPage() {
-  const { data: categoryTree, isLoading } =
-    trpc.admin.getCategoryTree.useQuery();
-
+  const { data: categoryTree, isLoading } = trpc.admin.getCategoryTree.useQuery(
+    undefined,
+    {
+      staleTime: 1000 * 60 * 5, // 👈 Cache data selama 5 menit
+      refetchOnWindowFocus: false, // 👈 Cegah query ulang otomatis saat klik tab browser
+    },
+  );
   return (
     <div className="space-y-8 pb-16">
       {/* Header Section */}
