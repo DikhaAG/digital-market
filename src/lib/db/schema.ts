@@ -14,18 +14,54 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
-  image: text("image"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+// ============================================================================
+// ENUMS
+// ============================================================================
+export const userRoleEnum = pgEnum("user_role", [
+  "super_admin",
+  "admin",
+  "user",
+]);
+
+export const packageFeatureTypeEnum = pgEnum("package_feature_type", [
+  "boolean",
+  "text",
+  "number",
+]);
+
+export const packageTypeEnum = pgEnum("package_type", [
+  "basic",
+  "standard",
+  "premium",
+]);
+
+// ============================================================================
+// AUTHENTICATION & USER TABLES
+// ============================================================================
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+
+    // RBAC & Governance
+    role: userRoleEnum("role").default("user").notNull(),
+    banned: boolean("banned").default(false).notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("user_role_idx").on(table.role),
+    index("user_email_idx").on(table.email),
+  ],
+);
 
 export const session = pgTable(
   "session",
@@ -88,6 +124,9 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+// ============================================================================
+// CATEGORY & ATTRIBUTES TABLES
+// ============================================================================
 export const categories = pgTable(
   "categories",
   {
@@ -95,7 +134,6 @@ export const categories = pgTable(
     parentId: uuid("parent_id"),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull().unique(),
-
     icon: text("icon"),
     image: text("image"),
   },
@@ -141,10 +179,14 @@ export const attributeOptions = pgTable(
   ],
 );
 
+// ============================================================================
+// MARKETPLACE GIG TABLES
+// ============================================================================
 export const gigs = pgTable(
   "gigs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    // Referensi sellerId merujuk ke user dengan role 'admin' atau 'super_admin'
     sellerId: text("seller_id")
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),
@@ -183,12 +225,6 @@ export const gigAttributeOptions = pgTable(
   ],
 );
 
-export const packageFeatureTypeEnum = pgEnum("package_feature_type", [
-  "boolean",
-  "text",
-  "number",
-]);
-
 export const packageFeatures = pgTable(
   "package_features",
   {
@@ -202,12 +238,6 @@ export const packageFeatures = pgTable(
   (table) => [index("package_features_category_idx").on(table.categoryId)],
 );
 
-export const packageTypeEnum = pgEnum("package_type", [
-  "basic",
-  "standard",
-  "premium",
-]);
-
 export const gigPackages = pgTable(
   "gig_packages",
   {
@@ -216,7 +246,7 @@ export const gigPackages = pgTable(
       .references(() => gigs.id, { onDelete: "cascade" })
       .notNull(),
     packageType: packageTypeEnum("package_type").notNull(),
-    title: varchar("title", { length: 255 }).notNull(), // e.g. "STARTUP", "STANDARD", "PREMIUM"
+    title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
     price: integer("price").notNull(),
     deliveryTimeDays: integer("delivery_time_days").notNull(),
@@ -234,8 +264,8 @@ export const gigPackageFeatureValues = pgTable(
     packageFeatureId: uuid("package_feature_id")
       .references(() => packageFeatures.id, { onDelete: "cascade" })
       .notNull(),
-    isIncluded: boolean("is_included").default(false), // true = ✓, false = ✗
-    value: text("value"), // Digunakan jika tipe feature adalah 'number' atau 'text' (e.g., "3")
+    isIncluded: boolean("is_included").default(false),
+    value: text("value"),
   },
   (table) => [
     primaryKey({ columns: [table.gigPackageId, table.packageFeatureId] }),
@@ -243,6 +273,10 @@ export const gigPackageFeatureValues = pgTable(
     index("pkg_feat_val_feat_idx").on(table.packageFeatureId),
   ],
 );
+
+// ============================================================================
+// DRIZZLE RELATIONS
+// ============================================================================
 export const relations = defineRelations(
   {
     user,
