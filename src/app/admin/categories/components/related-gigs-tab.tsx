@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Briefcase, ExternalLink, ImageIcon, User } from "lucide-react";
+import { ExternalLink, ImageIcon, User } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,13 +79,15 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
 
               {/* Detail Gig */}
               <div className="min-w-0 space-y-0.5">
-                <p className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-md group-hover:text-primary transition-colors">
+                <p className="text-xs font-bold text-foreground truncate max-w-50 sm:max-w-md group-hover:text-primary transition-colors">
                   {gig.title}
                 </p>
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1 truncate">
                     <User className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                    <span className="truncate">{gig.seller.name}</span>
+                    <span className="truncate">
+                      {gig.seller?.name ?? "Seller Tidak Ditemukan"}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -115,7 +117,7 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
             variant="ghost"
             size="sm"
             className="h-7 text-xs text-primary hover:text-primary font-bold gap-1 px-2"
-          ></Button>
+          />
         </div>
       )}
     </div>
