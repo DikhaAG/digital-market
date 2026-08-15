@@ -1,12 +1,14 @@
+// src/app/admin/categories/components/sub-category-card.tsx
 "use client";
 
-import { Layers, CheckSquare, Filter } from "lucide-react";
+import { Layers, CheckSquare, Filter, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { EditCategoryDialog } from "./dialogs";
 import { PackageFeaturesTab } from "./package-features-tab";
 import { FilterAttributesTab } from "./filter-attributes-tab";
+import { RelatedGigsTab } from "./related-gigs-tab"; // 👈 Import Komponen Baru
 import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
 import { type SubCategoryItem } from "../_schemas/category-admin.schema";
 
@@ -59,9 +61,9 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
         </div>
       </div>
 
-      {/* Tabs Relasi Features & Attributes */}
+      {/* Tabs Relasi Features, Attributes & Related Gigs */}
       <Tabs defaultValue="features" className="w-full">
-        <TabsList className="bg-muted/70 w-full grid grid-cols-2 h-auto p-1 gap-1 rounded-lg">
+        <TabsList className="bg-muted/70 w-full grid grid-cols-3 h-auto p-1 gap-1 rounded-lg">
           <TabsTrigger
             value="features"
             className="text-xs font-semibold gap-1.5 py-1.5 h-8 data-[state=active]:bg-background data-[state=active]:shadow-xs transition-all"
@@ -80,6 +82,13 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
               Attributes ({sub.attributes.length})
             </span>
           </TabsTrigger>
+          <TabsTrigger
+            value="gigs"
+            className="text-xs font-semibold gap-1.5 py-1.5 h-8 data-[state=active]:bg-background data-[state=active]:shadow-xs transition-all"
+          >
+            <Briefcase className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">Gigs ({sub.gigCount ?? 0})</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="features" className="mt-3">
@@ -93,6 +102,9 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
             categoryId={sub.id}
             attributes={sub.attributes}
           />
+        </TabsContent>
+        <TabsContent value="gigs" className="mt-3">
+          <RelatedGigsTab categoryId={sub.id} />
         </TabsContent>
       </Tabs>
     </div>
