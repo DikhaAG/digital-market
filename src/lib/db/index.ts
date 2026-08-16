@@ -1,6 +1,10 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import dns from "node:dns";
+
+// Paksa Node.js mengutamakan resolusi IPv4 untuk mencegah timeout koneksi Supabase
+dns.setDefaultResultOrder("ipv4first");
 
 if (!process.env.SUPABASE_DATABASE_URL) {
   throw new Error(
@@ -18,8 +22,9 @@ const client =
   postgres(process.env.SUPABASE_DATABASE_URL, {
     prepare: false, // Wajib false untuk Supabase Transaction Pooler (PgBouncer)
     max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
+    idle_timeout: 30,
+    connect_timeout: 30, // Ditingkatkan ke 30 detik untuk toleransi latensi jaringan
+    ssl: "require", // Memastikan handshake SSL diizinkan oleh Supabase
   });
 
 if (process.env.NODE_ENV !== "production") {
