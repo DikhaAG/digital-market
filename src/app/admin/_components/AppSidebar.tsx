@@ -46,16 +46,11 @@ const adminNavData: NavItem[] = [
     url: "/admin/categories",
     icon: FolderTree,
     isActive: true,
-    items: [
-      { title: "Hierarchy Tree", url: "/admin/categories" },
-      { title: "Package Features", url: "/admin/categories#features" },
-    ],
   },
   {
-    title: "Gigs Moderation",
+    title: "Gigs",
     url: "/admin/gigs",
     icon: Briefcase,
-    items: [{ title: "Audit List", url: "/admin/gigs" }],
   },
   {
     title: "Users & Sellers",
