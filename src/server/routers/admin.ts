@@ -1,31 +1,16 @@
 // src/server/routers/admin.ts
-
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, adminProcedure } from "@/lib/trpc/trpc";
+import { router, adminProcedure, superAdminProcedure } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
-import {
-  categories,
-  packageFeatures,
-  attributes,
-  attributeOptions,
-  gigs,
-} from "@/lib/db/schema";
+import { categories, gigs, user } from "@/lib/db/schema";
 import { gigFormSchema } from "@/lib/validations/gig";
-import { updateCategorySchema } from "@/app/admin/categories/_schemas/category-admin.schema";
 import { AdminService } from "@/server/services/admin.service";
-
-/**
- * Type guard helper untuk mengecek error dari PostgreSQL secara type-safe
- */
-function isDatabaseError(error: unknown): error is { code: string } {
-  return typeof error === "object" && error !== null && "code" in error;
-}
 
 export const adminRouter = router({
   // --------------------------------------------------------------------------
-  // SECTION 1: GIG MANAGEMENT
+  // ADMIN & SUPER ADMIN SHARED PROCEDURES
   // --------------------------------------------------------------------------
   getCategoryGigMeta: adminProcedure
     .input(
@@ -41,6 +26,7 @@ export const adminRouter = router({
       });
       return categoryData ?? { attributes: [], packageFeatures: [] };
     }),
+
   getGigDetail: adminProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input }) => {
@@ -83,191 +69,171 @@ export const adminRouter = router({
       return await AdminService.getGigsForAudit(input);
     }),
 
-  deleteGig: adminProcedure
+  getAllSellers: adminProcedure.query(async () => {
+    return await db.query.user.findMany({
+      where: {
+        role: { in: ["admin", "super_admin"] },
+        banned: false,
+      },
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+      },
+      orderBy: { name: "asc" },
+    });
+  }),
+
+  getCategoryTree: adminProcedure.query(async () => {
+    return await AdminService.getCategoryTree();
+  }),
+
+  /** Soft Delete / Arsip Gig oleh Admin (Seller) atau Super Admin */
+  softDeleteGig: adminProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input, ctx }) => {
+      const gig = await db.query.gigs.findFirst({
+        where: {
+          id: input.id,
+        },
+        columns: { id: true, sellerId: true, deletedAt: true },
+      });
+
+      if (!gig || gig.deletedAt !== null) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Gig tidak ditemukan atau sudah diarsipkan",
+        });
+      }
+
+      // Enforcement: Seller biasa hanya boleh mengarsipkan Gig miliknya sendiri
+      if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Anda tidak memiliki hak akses untuk mengarsipkan Gig ini",
+        });
+      }
+
+      const [updated] = await db
+        .update(gigs)
+        .set({ deletedAt: new Date() })
+        .where(eq(gigs.id, input.id))
+        .returning();
+
+      return updated;
+    }),
+
+  /** Pemulihan (Restore) Gig oleh Admin (Seller) atau Super Admin */
+  restoreGig: adminProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input, ctx }) => {
+      const gig = await db.query.gigs.findFirst({
+        where: {
+          id: input.id,
+        },
+        columns: { id: true, sellerId: true, deletedAt: true },
+      });
+
+      if (!gig || gig.deletedAt === null) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Gig tidak ditemukan atau statusnya sedang aktif",
+        });
+      }
+
+      // Enforcement: Seller biasa hanya boleh memulihkan Gig miliknya sendiri
+      if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Anda tidak memiliki hak akses untuk memulihkan Gig ini",
+        });
+      }
+
+      const [restored] = await db
+        .update(gigs)
+        .set({ deletedAt: null })
+        .where(eq(gigs.id, input.id))
+        .returning();
+
+      return restored;
+    }),
+
+  // --------------------------------------------------------------------------
+  // SUPER ADMIN EXCLUSIVE PROCEDURES (Best Practice Governance)
+  // --------------------------------------------------------------------------
+
+  /** Mengambil seluruh akun pengelola untuk audit sistem */
+  getAllAdminAccounts: superAdminProcedure.query(async () => {
+    return await db.query.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }),
+
+  /** Mengubah Role Pengguna (Promote/Demote antara Admin & Super Admin) */
+  updateUserRole: superAdminProcedure
+    .input(
+      z.object({
+        targetUserId: z.string().min(1),
+        newRole: z.enum(["admin", "super_admin"]),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.targetUserId === ctx.user.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Anda tidak dapat mengubah role diri Anda sendiri",
+        });
+      }
+
+      const [updated] = await db
+        .update(user)
+        .set({ role: input.newRole })
+        .where(eq(user.id, input.targetUserId))
+        .returning();
+
+      return updated;
+    }),
+
+  /** Bekukan/Aktifkan Akses Pengelola (Banned Status) */
+  toggleUserBanStatus: superAdminProcedure
+    .input(
+      z.object({
+        targetUserId: z.string().min(1),
+        banned: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.targetUserId === ctx.user.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Anda tidak dapat membekukan akun sendiri",
+        });
+      }
+
+      const [updated] = await db
+        .update(user)
+        .set({ banned: input.banned })
+        .where(eq(user.id, input.targetUserId))
+        .returning();
+
+      return updated;
+    }),
+
+  /** Hapus Gig secara permanen oleh Super Admin (Hard Delete) */
+  deleteGig: superAdminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {
       await db.delete(gigs).where(eq(gigs.id, input.id));
       return { success: true };
     }),
 
-  getAllSellers: adminProcedure.query(async () => {
-    return await db.query.user.findMany({
-      columns: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-      },
-      orderBy: (u, { asc }) => [asc(u.name)],
-    });
-  }),
-  // --------------------------------------------------------------------------
-  // SECTION 2: CATEGORY MANAGEMENT
-  // --------------------------------------------------------------------------
-  getCategoryTree: adminProcedure.query(async () => {
-    return await AdminService.getCategoryTree();
-  }),
-
-  createCategory: adminProcedure
-    .input(
-      z.object({
-        name: z.string().min(2),
-        slug: z.string().min(2),
-        parentId: z.string().optional().nullable(),
-        icon: z.string().optional().nullable(),
-        image: z.string().optional().nullable(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const [newCategory] = await db
-        .insert(categories)
-        .values({
-          name: input.name,
-          slug: input.slug,
-          parentId: input.parentId ?? null,
-          icon: input.icon ?? null,
-          image: input.image ?? null,
-        })
-        .returning();
-      return newCategory;
-    }),
-
-  updateCategory: adminProcedure
-    .input(updateCategorySchema)
-    .mutation(async ({ input }) => {
-      const [updated] = await db
-        .update(categories)
-        .set({
-          name: input.name,
-          slug: input.slug,
-          icon: input.icon,
-          image: input.image,
-        })
-        .where(eq(categories.id, input.id))
-        .returning();
-
-      if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Kategori tidak ditemukan untuk diperbarui",
-        });
-      }
-      return updated;
-    }),
-
-  deleteCategory: adminProcedure
+  /** Hapus Kategori secara permanen oleh Super Admin */
+  deleteCategory: superAdminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {
       await db.delete(categories).where(eq(categories.id, input.id));
-      return { success: true };
-    }),
-
-  // --------------------------------------------------------------------------
-  // SECTION 3: ATTRIBUTES & OPTIONS MANAGEMENT
-  // --------------------------------------------------------------------------
-  createAttribute: adminProcedure
-    .input(
-      z.object({
-        categoryId: z.string().min(1, { message: "ID Kategori tidak valid" }),
-        name: z.string().min(2),
-        slug: z.string().min(2),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const [newAttr] = await db
-          .insert(attributes)
-          .values({
-            categoryId: input.categoryId,
-            name: input.name,
-            slug: input.slug,
-          })
-          .returning();
-        return newAttr;
-      } catch (error: unknown) {
-        if (isDatabaseError(error) && error.code === "23505") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Atribut dengan nama/slug "${input.slug}" sudah ada pada kategori ini.`,
-          });
-        }
-        throw error;
-      }
-    }),
-
-  deleteAttribute: adminProcedure
-    .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db.delete(attributes).where(eq(attributes.id, input.id));
-      return { success: true };
-    }),
-
-  createAttributeOption: adminProcedure
-    .input(
-      z.object({
-        attributeId: z.uuid({ message: "ID Atribut tidak valid" }),
-        label: z.string().min(1),
-        value: z.string().min(1),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const [newOption] = await db
-          .insert(attributeOptions)
-          .values({
-            attributeId: input.attributeId,
-            label: input.label,
-            value: input.value,
-          })
-          .returning();
-        return newOption;
-      } catch (error: unknown) {
-        if (isDatabaseError(error) && error.code === "23505") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Opsi "${input.label}" sudah ada pada atribut ini.`,
-          });
-        }
-        throw error;
-      }
-    }),
-
-  deleteAttributeOption: adminProcedure
-    .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db
-        .delete(attributeOptions)
-        .where(eq(attributeOptions.id, input.id));
-      return { success: true };
-    }),
-
-  // --------------------------------------------------------------------------
-  // SECTION 4: PACKAGE FEATURES MASTER MANAGEMENT
-  // --------------------------------------------------------------------------
-  addPackageFeature: adminProcedure
-    .input(
-      z.object({
-        categoryId: z.string().min(1, { message: "ID Kategori wajib diisi" }),
-        name: z.string().min(2),
-        type: z.enum(["boolean", "text", "number"]),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const [newFeature] = await db
-        .insert(packageFeatures)
-        .values({
-          categoryId: input.categoryId,
-          name: input.name,
-          type: input.type,
-        })
-        .returning();
-      return newFeature;
-    }),
-
-  deletePackageFeature: adminProcedure
-    .input(z.object({ id: z.uuid() }))
-    .mutation(async ({ input }) => {
-      await db.delete(packageFeatures).where(eq(packageFeatures.id, input.id));
       return { success: true };
     }),
 });

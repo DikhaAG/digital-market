@@ -20,7 +20,7 @@ import {
 export const userRoleEnum = pgEnum("user_role", [
   "super_admin",
   "admin",
-  "user",
+  "user", // user role untuk awal inisialisasi akun baru admin / super admin
 ]);
 
 export const packageFeatureTypeEnum = pgEnum("package_feature_type", [
@@ -36,7 +36,7 @@ export const packageTypeEnum = pgEnum("package_type", [
 ]);
 
 // ============================================================================
-// AUTHENTICATION & USER TABLES
+// AUTHENTICATION & USER TABLES (Better-Auth v1.6 Spec)
 // ============================================================================
 export const user = pgTable(
   "user",
@@ -47,7 +47,8 @@ export const user = pgTable(
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"),
 
-    // RBAC & Governance
+    // Governance & RBAC (Admin & Super Admin Only)
+    // user role untuk awal inisialisasi akun baru admin / super admin
     role: userRoleEnum("role").default("user").notNull(),
     banned: boolean("banned").default(false).notNull(),
 
@@ -186,7 +187,6 @@ export const gigs = pgTable(
   "gigs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // Referensi sellerId merujuk ke user dengan role 'admin' atau 'super_admin'
     sellerId: text("seller_id")
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),
@@ -197,6 +197,10 @@ export const gigs = pgTable(
     slug: text("slug").notNull().unique(),
     about: text("about"),
     coverImage: text("cover_image"),
+
+    // Soft Delete Timestamp (Null = Aktif, Timestamp = Diarsipkan)
+    deletedAt: timestamp("deleted_at"),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -206,6 +210,7 @@ export const gigs = pgTable(
   (table) => [
     index("gigs_category_idx").on(table.categoryId),
     index("gigs_seller_idx").on(table.sellerId),
+    index("gigs_deleted_at_idx").on(table.deletedAt), // Indeks untuk filter `where: isNull(gigs.deletedAt)`
   ],
 );
 
@@ -275,7 +280,7 @@ export const gigPackageFeatureValues = pgTable(
 );
 
 // ============================================================================
-// DRIZZLE RELATIONS
+// DRIZZLE RELATIONS (V2 API)
 // ============================================================================
 export const relations = defineRelations(
   {

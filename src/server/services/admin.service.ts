@@ -1,6 +1,6 @@
 // src/server/services/admin.service.ts
 
-import { and, count, eq, ilike } from "drizzle-orm";
+import { and, count, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   gigs,
@@ -235,7 +235,7 @@ export class AdminService {
       },
     });
 
-    const conditions = [];
+    const conditions = [isNull(gigs.deletedAt)];
     if (search?.trim())
       conditions.push(ilike(gigs.title, `%${search.trim()}%`));
     if (categoryId) conditions.push(eq(gigs.categoryId, categoryId));

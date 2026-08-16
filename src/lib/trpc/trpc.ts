@@ -1,13 +1,18 @@
 // src/lib/trpc/trpc.ts
-
 import { initTRPC, TRPCError } from "@trpc/server";
 import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import { logger } from "@/lib/logger"; // 👈 Import logger terpusat
+import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 export async function createTRPCContext(opts?: FetchCreateContextFnOptions) {
+  const reqHeaders = opts?.req.headers ?? new Headers();
+  const session = await auth.api.getSession({
+    headers: reqHeaders,
+  });
+
   return {
-    headers: opts?.req.headers,
-    session: { user: { id: "admin_id", role: "ADMIN" } },
+    headers: reqHeaders,
+    session,
   };
 }
 
@@ -15,14 +20,13 @@ export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
 const t = initTRPC.context<Context>().create();
 
-// ============================================================================
-// MIDDLEWARE: SERVER LOGGING & PERFORMANCE MONITORING
-// ============================================================================
+// ----------------------------------------------------------------------------
+// MIDDLEWARE: LOGGING & MONITORING
+// ----------------------------------------------------------------------------
 const loggerMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
   const start = Date.now();
   const result = await next();
   const durationMs = Date.now() - start;
-
   const meta = {
     path,
     type,
@@ -31,55 +35,104 @@ const loggerMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
   };
 
   if (!result.ok) {
-    // Log error (Termasuk Validation Error Zod 400 Bad Request)
     logger.error({
-      message: `tRPC Procedure Failed: ${path}`,
+      message: `tRPC Failure: ${path}`,
       error: result.error,
       ...meta,
     });
   } else if (durationMs > 500) {
-    // Deteksi otomatis query lambat seperti getCategoryTree (2.4s)
     logger.warn({
-      message: `Slow tRPC Procedure Detected (>500ms): ${path}`,
+      message: `Slow tRPC Procedure (>500ms): ${path}`,
       ...meta,
     });
   } else {
-    // Log sukses standar
     logger.info({
-      message: `tRPC Request Succeeded: ${path}`,
+      message: `tRPC Succeeded: ${path}`,
       ...meta,
     });
   }
-
   return result;
 });
 
-// Middleware Autentikasi
+// ----------------------------------------------------------------------------
+// MIDDLEWARE: RBAC ACCESS CONTROL
+// ----------------------------------------------------------------------------
+
+/** Guard untuk pengguna yang sudah terautentikasi dan tidak dibekukan (Banned) */
 const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Anda harus login terlebih dahulu",
+      message: "Sesi login tidak valid atau telah berakhir",
     });
   }
-  return next({ ctx: { ...ctx, user: ctx.session.user } });
-});
 
-// Middleware Admin
-const isAdmin = t.middleware(({ ctx, next }) => {
-  if (!ctx.session?.user || ctx.session.user.role !== "ADMIN") {
+  if (ctx.session.user.banned) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Akses khusus Administrator",
+      message: "Akun Anda telah ditangguhkan. Hubungi Super Admin.",
     });
   }
-  return next({ ctx: { ...ctx, user: ctx.session.user } });
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.session.user,
+    },
+  });
 });
 
+/** Guard Otorisasi: Mengakses fitur manajemen (Admin & Super Admin) */
+const isAdmin = t.middleware(({ ctx, next }) => {
+  if (
+    !ctx.session?.user ||
+    !["admin", "super_admin"].includes(ctx.session.user.role)
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Akses ditolak: Membutuhkan hak akses Administrator",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.session.user,
+    },
+  });
+});
+
+/** Guard Otorisasi Eksklusif: Hanya Super Admin (Best Practice 2026) */
+const isSuperAdmin = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user || ctx.session.user.role !== "super_admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Akses terbatas: Fitur ini khusus untuk Super Admin",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.session.user,
+    },
+  });
+});
+
+// ----------------------------------------------------------------------------
+// PROCEDURES
+// ----------------------------------------------------------------------------
 export const router = t.router;
 export const publicProcedure = t.procedure.use(loggerMiddleware);
 export const protectedProcedure = t.procedure
   .use(isAuthed)
   .use(loggerMiddleware);
-export const adminProcedure = t.procedure.use(isAdmin).use(loggerMiddleware);
+export const adminProcedure = t.procedure
+  .use(isAuthed)
+  .use(isAdmin)
+  .use(loggerMiddleware);
+export const superAdminProcedure = t.procedure
+  .use(isAuthed)
+  .use(isSuperAdmin)
+  .use(loggerMiddleware);
 export const createCallerFactory = t.createCallerFactory;
