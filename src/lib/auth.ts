@@ -20,7 +20,7 @@ export const auth = betterAuth({
       role: {
         type: "string",
         required: true,
-        defaultValue: "admin",
+        defaultValue: "user",
         input: false, // User biasa tidak dapat mendaftarkan diri memilih role via API
       },
       banned: {

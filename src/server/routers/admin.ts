@@ -49,10 +49,45 @@ export const adminRouter = router({
       return gig;
     }),
 
-  upsertGig: adminProcedure.input(gigFormSchema).mutation(async ({ input }) => {
-    return await AdminService.upsertGig(input);
-  }),
+  upsertGig: adminProcedure
+    .input(gigFormSchema)
+    .mutation(async ({ input, ctx }) => {
+      // 1. Jika mode Update (id ada), verifikasi pemilik gig
+      if (input.id) {
+        const existingGig = await db.query.gigs.findFirst({
+          where: {
+            id: input.id,
+          },
+          columns: { sellerId: true },
+        });
 
+        if (!existingGig) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Gig tidak ditemukan",
+          });
+        }
+
+        if (
+          ctx.user.role !== "super_admin" &&
+          existingGig.sellerId !== ctx.user.id
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Anda tidak memiliki akses untuk mengubah Gig ini",
+          });
+        }
+      }
+
+      // 2. Pastikan Seller biasa tidak bisa memalsukan sellerId milik orang lain saat membuat Gig baru
+      const targetSellerId =
+        ctx.user.role === "super_admin" ? input.sellerId : ctx.user.id;
+
+      return await AdminService.upsertGig({
+        ...input,
+        sellerId: targetSellerId,
+      });
+    }),
   getGigsForAudit: adminProcedure
     .input(
       z.object({
