@@ -1,3 +1,4 @@
+// src/app/admin/login/page.tsx
 "use client";
 
 import { useState, Suspense } from "react";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/form";
 
 const loginSchema = z.object({
-  email: z.email("Format email tidak valid"),
+  email: z.string().email("Format email tidak valid"),
   password: z.string().min(8, "Password minimal 8 karakter"),
 });
 
@@ -36,7 +37,14 @@ type LoginInput = z.infer<typeof loginSchema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/admin";
+  const rawCallback = searchParams.get("callbackUrl");
+
+  // Sanitasi Callback URL agar tidak mengarah kembali ke login
+  const callbackUrl =
+    rawCallback && !rawCallback.includes("/admin/login")
+      ? rawCallback
+      : "/admin";
+
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginInput>({

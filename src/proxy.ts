@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   // Proteksi rute administrative
   if (pathname.startsWith("/admin")) {
     if (!sessionCookie) {
-      const loginUrl = new URL("/admin/login", request.url);
+      const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
