@@ -1,15 +1,15 @@
-// src/app/login/page.tsx
+// src/app/signup/page.tsx
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ShieldAlert, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { signIn } from "@/lib/auth-client";
+import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,65 +28,61 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-const loginSchema = z.object({
-  email: z.email("Format email tidak valid"),
-  password: z.string().min(8, "Password minimal 8 karakter"),
-});
-
-type LoginInput = z.infer<typeof loginSchema>;
-
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const rawCallback = searchParams.get("callbackUrl");
-  const errorParam = searchParams.get("error");
-
-  // Sanitasi Callback URL agar tidak mengarah kembali ke login
-  const callbackUrl =
-    rawCallback && !rawCallback.includes("/login") ? rawCallback : "/admin";
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Reaktif Notifikasi Error dari Pengalihan Layout Server
-  useEffect(() => {
-    if (errorParam === "banned") {
-      toast.error("Akun Anda telah ditangguhkan. Hubungi Super Admin.", {
-        id: "auth-toast",
-      });
-    } else if (errorParam === "unauthorized") {
-      toast.error("Akses ditolak: Membutuhkan hak akses Administrator.", {
-        id: "auth-toast",
-      });
-    }
-  }, [errorParam]);
-
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+const signUpSchema = z
+  .object({
+    name: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+    email: z.string().email("Format email tidak valid"),
+    password: z.string().min(8, "Password minimal 8 karakter"),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Konfirmasi password tidak cocok",
+    path: ["confirmPassword"],
   });
 
-  const onSubmit = async (data: LoginInput) => {
+type SignUpInput = z.infer<typeof signUpSchema>;
+
+function SignUpForm() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const form = useForm<SignUpInput>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (data: SignUpInput) => {
     setIsLoading(true);
-    await signIn.email(
+
+    await signUp.email(
       {
+        name: data.name,
         email: data.email,
         password: data.password,
-        callbackURL: callbackUrl,
+        callbackURL: "/login",
       },
       {
         onRequest: () => {
-          toast.loading("Memverifikasi kredensial...", { id: "auth-toast" });
+          toast.loading("Mendaftarkan akun baru...", { id: "auth-toast" });
         },
         onSuccess: () => {
-          toast.success("Login berhasil! Mengalihkan ke console...", {
-            id: "auth-toast",
-          });
-          router.push(callbackUrl);
-          router.refresh();
+          toast.success(
+            "Pendaftaran berhasil! Mengalihkan ke halaman login...",
+            {
+              id: "auth-toast",
+            },
+          );
+          router.push("/login");
         },
         onError: (ctx: { error: { message?: string } }) => {
-          toast.error(ctx.error.message || "Email atau password salah", {
+          toast.error(ctx.error.message || "Gagal mendaftarkan akun", {
             id: "auth-toast",
           });
           setIsLoading(false);
@@ -99,18 +95,43 @@ function LoginForm() {
     <Card className="w-full max-w-md border-border/80 bg-card shadow-lg">
       <CardHeader className="space-y-2 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <ShieldAlert className="h-6 w-6" />
+          <UserPlus className="h-6 w-6" />
         </div>
         <CardTitle className="text-xl font-black tracking-tight text-foreground">
-          Control Panel Login
+          Buat Akun Baru
         </CardTitle>
         <CardDescription className="text-xs text-muted-foreground">
-          Masukkan kredensial pengelola untuk mengakses dashboard administrasi.
+          Daftarkan akun pengelola untuk memulai setup awal sistem.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                    Nama Lengkap
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="John Doe"
+                        autoComplete="name"
+                        className="h-9 pl-9 text-xs"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="email"
@@ -136,6 +157,7 @@ function LoginForm() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="password"
@@ -150,7 +172,7 @@ function LoginForm() {
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         className="h-9 pl-9 pr-9 text-xs"
                         disabled={isLoading}
                         {...field}
@@ -173,6 +195,47 @@ function LoginForm() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                    Konfirmasi Password
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        className="h-9 pl-9 pr-9 text-xs"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground focus:outline-none"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button
               type="submit"
               className="mt-2 h-9 w-full text-xs font-bold"
@@ -181,22 +244,22 @@ function LoginForm() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Memproses Autentikasi...
+                  Mendaftarkan Akun...
                 </>
               ) : (
-                "Masuk ke Console"
+                "Daftar Sekarang"
               )}
             </Button>
           </form>
         </Form>
 
         <div className="mt-4 text-center text-xs text-muted-foreground">
-          Belum memiliki akun?{" "}
+          Sudah memiliki akun?{" "}
           <Link
-            href="/signup"
+            href="/login"
             className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Daftar di sini
+            Masuk di sini
           </Link>
         </div>
       </CardContent>
@@ -204,7 +267,7 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Suspense
@@ -214,7 +277,7 @@ export default function LoginPage() {
           </div>
         }
       >
-        <LoginForm />
+        <SignUpForm />
       </Suspense>
     </div>
   );

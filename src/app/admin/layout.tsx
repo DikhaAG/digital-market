@@ -1,3 +1,7 @@
+// src/app/admin/layout.tsx
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { AppSidebar } from "./_components/AppSidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -6,11 +10,28 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // 1. Eksekusi verifikasi sesi di Server Level
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  if (session.user.banned) {
+    redirect("/login?error=banned");
+  }
+
+  if (!["admin", "super_admin"].includes(session.user.role)) {
+    redirect("/login?error=unauthorized");
+  }
+
   return (
     <SidebarProvider
       style={
