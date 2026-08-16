@@ -1,11 +1,13 @@
 // src/lib/trpc/trpc.ts
 import { initTRPC, TRPCError } from "@trpc/server";
 import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+import { headers as getNextHeaders } from "next/headers";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
 export async function createTRPCContext(opts?: FetchCreateContextFnOptions) {
-  const reqHeaders = opts?.req.headers ?? new Headers();
+  // Ambil request headers dari Fetch Adapter (API Route) atau dari Next.js RSC context (Server Caller)
+  const reqHeaders = opts?.req.headers ?? (await getNextHeaders());
   const session = await auth.api.getSession({
     headers: reqHeaders,
   });
@@ -57,8 +59,6 @@ const loggerMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
 // ----------------------------------------------------------------------------
 // MIDDLEWARE: RBAC ACCESS CONTROL
 // ----------------------------------------------------------------------------
-
-/** Guard untuk pengguna yang sudah terautentikasi dan tidak dibekukan (Banned) */
 const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({
@@ -82,7 +82,6 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   });
 });
 
-/** Guard Otorisasi: Mengakses fitur manajemen (Admin & Super Admin) */
 const isAdmin = t.middleware(({ ctx, next }) => {
   if (
     !ctx.session?.user ||
@@ -102,7 +101,6 @@ const isAdmin = t.middleware(({ ctx, next }) => {
   });
 });
 
-/** Guard Otorisasi Eksklusif: Hanya Super Admin (Best Practice 2026) */
 const isSuperAdmin = t.middleware(({ ctx, next }) => {
   if (!ctx.session?.user || ctx.session.user.role !== "super_admin") {
     throw new TRPCError({
