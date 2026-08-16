@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "sonner";
 import {
@@ -14,6 +15,8 @@ import {
   UserCheck,
   ShieldAlert,
   RefreshCw,
+  Plus,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,12 +69,11 @@ export function AdminDashboardClient({
   const router = useRouter();
   const isSuperAdmin = currentUser.role === "super_admin";
 
-  // Active Tab State
   const [activeTab, setActiveTab] = useState<
     "overview" | "accounts" | "categories"
   >("overview");
 
-  // Mutasi Governance (Super Admin Only)
+  // Mutasi Governance (Khusus Super Admin)
   const updateRoleMutation = trpc.admin.updateUserRole.useMutation({
     onSuccess: () => {
       toast.success("Role pengguna berhasil diperbarui");
@@ -92,7 +94,6 @@ export function AdminDashboardClient({
     onError: (err) => toast.error(err.message),
   });
 
-  // Hitung Metrik Dashboard
   const totalSubcategories = categoryTree.reduce(
     (acc, curr) => acc + curr.subcategories.length,
     0,
@@ -101,53 +102,74 @@ export function AdminDashboardClient({
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
+      {/* Top Bar Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-foreground">
             Selamat Datang, {currentUser.name}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Ringkasan tata kelola sistem dan audit aktivitas pengelola
-            marketplace.
+            {isSuperAdmin
+              ? "Panel kontrol utama tata kelola sistem dan audit marketplace."
+              : "Panel kelola toko dan publikasi layanan (Gig) Anda."}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
               isSuperAdmin
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
+                : "bg-blue-500/10 text-blue-600 border border-blue-500/20"
             }`}
           >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            {isSuperAdmin ? "SUPER ADMIN" : "ADMINISTRATOR"}
+            {isSuperAdmin ? (
+              <>
+                <ShieldCheck className="h-3.5 w-3.5" /> SUPER ADMIN
+              </>
+            ) : (
+              <>
+                <Store className="h-3.5 w-3.5" /> SELLER (ADMIN)
+              </>
+            )}
           </span>
+          {!isSuperAdmin && (
+            <Button
+              nativeButton={false}
+              render={
+                <Link href="/admin/gigs/new">
+                  <Plus className="h-3.5 w-3.5" /> Buat Gig
+                </Link>
+              }
+              size="sm"
+              className="h-8 gap-1 text-xs"
+            ></Button>
+          )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => router.refresh()}
             className="h-8 gap-1 text-xs"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Grid Kartu Metrik Dashboard */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
-              Total Layanan (Gigs)
+              {isSuperAdmin ? "Total Layanan (Sistem)" : "Layanan Saya"}
             </CardTitle>
             <Briefcase className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black">{totalGigs}</div>
             <p className="text-[10px] text-muted-foreground mt-1">
-              Layanan aktif terdaftar di sistem
+              {isSuperAdmin
+                ? "Seluruh Gig aktif terdaftar"
+                : "Gig milik Anda yang sedang tayang"}
             </p>
           </CardContent>
         </Card>
@@ -155,52 +177,75 @@ export function AdminDashboardClient({
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
-              Struktur Kategori
+              Kategori Tersedia
             </CardTitle>
             <FolderTree className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black">{categoryTree.length}</div>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {totalSubcategories} Sub-kategori terhubung
+              {totalSubcategories} Sub-kategori aktif
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
-              Akun Pengelola
-            </CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black">{initialAccounts.length}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Admin & Super Admin terdaftar
-            </p>
-          </CardContent>
-        </Card>
+        {isSuperAdmin ? (
+          <>
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
+                  Akun Pengelola
+                </CardTitle>
+                <Users className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black">
+                  {initialAccounts.length}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Admin & Super Admin
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
-              Akun Ditangguhkan
-            </CardTitle>
-            <ShieldAlert className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-destructive">
-              {bannedAccountsCount}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Akses login dibekukan
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
+                  Akun Ditangguhkan
+                </CardTitle>
+                <ShieldAlert className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-destructive">
+                  {bannedAccountsCount}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Akses dibekukan
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card className="border-border/80 shadow-sm sm:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold uppercase text-muted-foreground">
+                Status Toko
+              </CardTitle>
+              <UserCheck className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-base font-bold text-emerald-600">
+                Akun Verifikasi Aktif
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Anda dapat menambahkan dan mempublikasikan jasa secara langsung.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigasi Tab */}
       <div className="flex border-b border-border text-xs font-semibold gap-4">
         <button
           onClick={() => setActiveTab("overview")}
@@ -210,7 +255,7 @@ export function AdminDashboardClient({
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Audit Gig Terbaru
+          {isSuperAdmin ? "Audit Gig Terbaru" : "Daftar Gig Saya"}
         </button>
         {isSuperAdmin && (
           <button
@@ -236,15 +281,17 @@ export function AdminDashboardClient({
         </button>
       </div>
 
-      {/* TAB CONTENT: OVERVIEW (Audit Gig) */}
+      {/* TAB OVERVIEW: DAFTAR GIG */}
       {activeTab === "overview" && (
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-bold">
-              Audit Gig Terbaru
+              {isSuperAdmin ? "Audit Gig Terbaru" : "Manajemen Jasa & Layanan"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Daftar 8 Gig terakhir yang dipublikasikan oleh seller.
+              {isSuperAdmin
+                ? "Daftar 8 Gig terakhir yang dipublikasikan oleh para seller."
+                : "Daftar layanan yang Anda tawarkan kepada pembeli."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -254,7 +301,7 @@ export function AdminDashboardClient({
                   <tr>
                     <th className="p-3">Judul Layanan</th>
                     <th className="p-3">Kategori</th>
-                    <th className="p-3">Seller</th>
+                    {isSuperAdmin && <th className="p-3">Seller</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -266,18 +313,20 @@ export function AdminDashboardClient({
                       <td className="p-3 text-muted-foreground">
                         {gig.category?.name ?? "Tidak Berkategori"}
                       </td>
-                      <td className="p-3 font-medium">
-                        {gig.seller?.name ?? "Anonim"}
-                      </td>
+                      {isSuperAdmin && (
+                        <td className="p-3 font-medium">
+                          {gig.seller?.name ?? "Anonim"}
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {initialGigs.length === 0 && (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={isSuperAdmin ? 3 : 2}
                         className="p-6 text-center text-muted-foreground"
                       >
-                        Belum ada data Gig yang tersedia.
+                        Belum ada layanan yang ditambahkan.
                       </td>
                     </tr>
                   )}
@@ -288,7 +337,7 @@ export function AdminDashboardClient({
         </Card>
       )}
 
-      {/* TAB CONTENT: ACCOUNTS MANAGEMENT (Super Admin Only) */}
+      {/* TAB MANAJEMEN AKUN (Super Admin Only) */}
       {activeTab === "accounts" && isSuperAdmin && (
         <Card className="border-border/80 shadow-sm">
           <CardHeader>
@@ -296,8 +345,7 @@ export function AdminDashboardClient({
               Tata Kelola Akun Pengelola
             </CardTitle>
             <CardDescription className="text-xs">
-              Ubah perizinan role atau bekukan status akun tim pengelola secara
-              langsung.
+              Ubah perizinan role atau bekukan status akun tim pengelola.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -372,7 +420,6 @@ export function AdminDashboardClient({
                                   ? "Demote to Admin"
                                   : "Promote to Super Admin"}
                               </Button>
-
                               <Button
                                 variant={acc.banned ? "default" : "destructive"}
                                 size="sm"
@@ -400,7 +447,7 @@ export function AdminDashboardClient({
         </Card>
       )}
 
-      {/* TAB CONTENT: CATEGORY TREE BREAKDOWN */}
+      {/* TAB POHON KATEGORI */}
       {activeTab === "categories" && (
         <div className="grid gap-4 md:grid-cols-2">
           {categoryTree.map((parent) => (

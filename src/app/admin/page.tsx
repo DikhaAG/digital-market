@@ -15,11 +15,11 @@ export default async function AdminDashboardPage() {
     redirect("/login");
   }
 
-  // 2. Inisialisasi tRPC Server Caller (RSC Execution)
+  // 2. Inisialisasi tRPC Server Caller
   const caller = await trpcServer();
   const isSuperAdmin = session.user.role === "super_admin";
 
-  // 3. Parallel Data Fetching (< 50ms Latency Overhead)
+  // 3. Parallel Data Fetching dengan Scope Role Seller (Admin)
   const [categoryTree, gigsAudit, adminAccounts] = await Promise.all([
     caller.admin.getCategoryTree(),
     caller.admin.getGigsForAudit({
@@ -27,6 +27,8 @@ export default async function AdminDashboardPage() {
       limit: 8,
       sortBy: "createdAt",
       sortOrder: "desc",
+      // Enforce data isolation: Seller hanya mengambil Gig miliknya sendiri
+      sellerId: isSuperAdmin ? undefined : session.user.id,
     }),
     isSuperAdmin ? caller.admin.getAllAdminAccounts() : Promise.resolve([]),
   ]);
