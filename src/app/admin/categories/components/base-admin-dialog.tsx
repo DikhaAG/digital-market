@@ -26,7 +26,7 @@ export interface BaseAdminDialogProps<TFieldValues extends FieldValues> {
   description?: string;
   form: UseFormReturn<TFieldValues>;
   onSubmit: (data: TFieldValues) => void;
-  onInvalidSubmit?: (errors: FieldErrors<TFieldValues>) => void; // 👈 Prop Baru
+  onInvalidSubmit?: (errors: FieldErrors<TFieldValues>) => void;
   isPending: boolean;
   submitText: string;
   submitIcon?: ReactNode;
@@ -52,7 +52,6 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
   onOpenChange: setControlledOpen,
 }: BaseAdminDialogProps<TFieldValues>) {
   const [internalOpen, setInternalOpen] = useState(false);
-
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
 
@@ -67,7 +66,7 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
+      <DialogTrigger render={trigger}></DialogTrigger>
       <DialogContent
         className={maxWidth === "md" ? "sm:max-w-md" : "sm:max-w-sm"}
       >
@@ -81,10 +80,9 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
             </DialogDescription>
           )}
         </DialogHeader>
-
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} // 👈 Dukung onInvalid
+            onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
             className="space-y-4 pt-2"
           >
             {children}

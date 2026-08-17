@@ -1,12 +1,19 @@
-// src/server/routers/admin.ts
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, adminProcedure, superAdminProcedure } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
-import { categories, gigs, user } from "@/lib/db/schema";
+import {
+  categories,
+  gigs,
+  user,
+  attributes,
+  attributeOptions,
+  packageFeatures,
+} from "@/lib/db/schema";
 import { gigFormSchema } from "@/lib/validations/gig";
 import { AdminService } from "@/server/services/admin.service";
+import { updateCategorySchema } from "@/app/admin/categories/_schemas/category-admin.schema";
 
 export const adminRouter = router({
   // --------------------------------------------------------------------------
@@ -27,6 +34,129 @@ export const adminRouter = router({
       return categoryData ?? { attributes: [], packageFeatures: [] };
     }),
 
+  createCategory: adminProcedure
+    .input(
+      z.object({
+        name: z.string().min(2),
+        slug: z.string().min(2),
+        parentId: z.uuid().optional().nullable(),
+        icon: z.string().optional().nullable(),
+        image: z.url().optional().or(z.literal("")).nullable(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [inserted] = await db
+        .insert(categories)
+        .values({
+          name: input.name,
+          slug: input.slug,
+          parentId: input.parentId || null,
+          icon: input.icon || null,
+          image: input.image || null,
+        })
+        .returning();
+      return inserted;
+    }),
+
+  updateCategory: adminProcedure
+    .input(updateCategorySchema)
+    .mutation(async ({ input }) => {
+      const [updated] = await db
+        .update(categories)
+        .set({
+          name: input.name,
+          slug: input.slug,
+          icon: input.icon || null,
+          image: input.image || null,
+        })
+        .where(eq(categories.id, input.id))
+        .returning();
+      return updated;
+    }),
+
+  createAttribute: adminProcedure
+    .input(
+      z.object({
+        categoryId: z.uuid(),
+        name: z.string().min(2),
+        slug: z.string().min(2),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [inserted] = await db
+        .insert(attributes)
+        .values({
+          categoryId: input.categoryId,
+          name: input.name,
+          slug: input.slug,
+        })
+        .returning();
+      return inserted;
+    }),
+
+  deleteAttribute: adminProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db.delete(attributes).where(eq(attributes.id, input.id));
+      return { success: true };
+    }),
+
+  createAttributeOption: adminProcedure
+    .input(
+      z.object({
+        attributeId: z.uuid(),
+        label: z.string().min(1),
+        value: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [inserted] = await db
+        .insert(attributeOptions)
+        .values({
+          attributeId: input.attributeId,
+          label: input.label,
+          value: input.value,
+        })
+        .returning();
+      return inserted;
+    }),
+
+  deleteAttributeOption: adminProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db
+        .delete(attributeOptions)
+        .where(eq(attributeOptions.id, input.id));
+      return { success: true };
+    }),
+
+  addPackageFeature: adminProcedure
+    .input(
+      z.object({
+        categoryId: z.uuid(),
+        name: z.string().min(2),
+        type: z.enum(["boolean", "text", "number"]).default("boolean"),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const [inserted] = await db
+        .insert(packageFeatures)
+        .values({
+          categoryId: input.categoryId,
+          name: input.name,
+          type: input.type,
+        })
+        .returning();
+      return inserted;
+    }),
+
+  deletePackageFeature: adminProcedure
+    .input(z.object({ id: z.uuid() }))
+    .mutation(async ({ input }) => {
+      await db.delete(packageFeatures).where(eq(packageFeatures.id, input.id));
+      return { success: true };
+    }),
+
   getGigDetail: adminProcedure
     .input(z.object({ id: z.uuid() }))
     .query(async ({ input, ctx }) => {
@@ -39,22 +169,18 @@ export const adminRouter = router({
           packages: { with: { featureValues: true } },
         },
       });
-
       if (!gig) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Gig tidak ditemukan",
         });
       }
-
-      // Security Guard: Seller biasa hanya diizinkan melihat detail Gig miliknya sendiri
       if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Anda tidak memiliki hak akses untuk melihat Gig ini",
         });
       }
-
       return gig;
     }),
 
@@ -66,14 +192,12 @@ export const adminRouter = router({
           where: { id: input.id },
           columns: { sellerId: true },
         });
-
         if (!existingGig) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Gig tidak ditemukan",
           });
         }
-
         if (
           ctx.user.role !== "super_admin" &&
           existingGig.sellerId !== ctx.user.id
@@ -84,10 +208,8 @@ export const adminRouter = router({
           });
         }
       }
-
       const targetSellerId =
         ctx.user.role === "super_admin" ? input.sellerId : ctx.user.id;
-
       return await AdminService.upsertGig({
         ...input,
         sellerId: targetSellerId,
@@ -107,11 +229,8 @@ export const adminRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      // Best Practice 2026: Mandatory Data Scoping untuk Multi-Tenant Admin
-      // Jika role adalah Seller ('admin'), paksa query sellerId ke ID akun milik dirinya sendiri
       const forcedSellerId =
         ctx.user.role === "super_admin" ? input.sellerId : ctx.user.id;
-
       return await AdminService.getGigsForAudit({
         ...input,
         sellerId: forcedSellerId,
@@ -146,27 +265,23 @@ export const adminRouter = router({
         where: { id: input.id },
         columns: { id: true, sellerId: true, deletedAt: true },
       });
-
       if (!gig || gig.deletedAt !== null) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Gig tidak ditemukan atau sudah diarsipkan",
         });
       }
-
       if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Anda tidak memiliki hak akses untuk mengarsipkan Gig ini",
         });
       }
-
       const [updated] = await db
         .update(gigs)
         .set({ deletedAt: new Date() })
         .where(eq(gigs.id, input.id))
         .returning();
-
       return updated;
     }),
 
@@ -177,32 +292,28 @@ export const adminRouter = router({
         where: { id: input.id },
         columns: { id: true, sellerId: true, deletedAt: true },
       });
-
       if (!gig || gig.deletedAt === null) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Gig tidak ditemukan atau statusnya sedang aktif",
         });
       }
-
       if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Anda tidak memiliki hak akses untuk memulihkan Gig ini",
         });
       }
-
       const [restored] = await db
         .update(gigs)
         .set({ deletedAt: null })
         .where(eq(gigs.id, input.id))
         .returning();
-
       return restored;
     }),
 
   // --------------------------------------------------------------------------
-  // SUPER ADMIN EXCLUSIVE PROCEDURES (Akses Penuh Hanya untuk Super Admin)
+  // SUPER ADMIN EXCLUSIVE PROCEDURES
   // --------------------------------------------------------------------------
   getUsersForManagement: superAdminProcedure
     .input(
@@ -232,13 +343,11 @@ export const adminRouter = router({
           message: "Anda tidak dapat mengubah role diri Anda sendiri",
         });
       }
-
       const [updated] = await db
         .update(user)
         .set({ role: input.newRole })
         .where(eq(user.id, input.targetUserId))
         .returning();
-
       return updated;
     }),
 
@@ -256,13 +365,11 @@ export const adminRouter = router({
           message: "Anda tidak dapat membekukan akun sendiri",
         });
       }
-
       const [updated] = await db
         .update(user)
         .set({ banned: input.banned })
         .where(eq(user.id, input.targetUserId))
         .returning();
-
       return updated;
     }),
 

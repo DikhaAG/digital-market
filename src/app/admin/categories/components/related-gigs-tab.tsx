@@ -60,7 +60,6 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
             className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-border/60 bg-card hover:bg-accent/30 transition-colors group"
           >
             <div className="flex items-center gap-3 min-w-0">
-              {/* Thumbnail Cover */}
               <div className="relative h-10 w-14 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/40">
                 {gig.coverImage ? (
                   <Image
@@ -76,8 +75,6 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
                   </div>
                 )}
               </div>
-
-              {/* Detail Gig */}
               <div className="min-w-0 space-y-0.5">
                 <p className="text-xs font-bold text-foreground truncate max-w-50 sm:max-w-md group-hover:text-primary transition-colors">
                   {gig.title}
@@ -92,15 +89,12 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
                 </div>
               </div>
             </div>
-
             <Badge variant="outline" className="text-[10px] font-mono shrink-0">
               {gig.packages.length} Paket
             </Badge>
           </div>
         ))}
       </div>
-
-      {/* Footer Navigasi Ke Audit Manager */}
       {totalGigs > 0 && (
         <div className="flex items-center justify-between pt-1 px-1">
           <span className="text-[11px] font-medium text-muted-foreground">
@@ -117,7 +111,7 @@ export function RelatedGigsTab({ categoryId }: RelatedGigsTabProps) {
             variant="ghost"
             size="sm"
             className="h-7 text-xs text-primary hover:text-primary font-bold gap-1 px-2"
-          />
+          ></Button>
         </div>
       )}
     </div>

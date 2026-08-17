@@ -60,7 +60,7 @@ export const attributeOptionFormSchema = z.object({
 });
 
 export const updateCategorySchema = z.object({
-  id: z.string().min(1, { message: "ID Kategori harus berupa UUID valid" }),
+  id: z.uuid({ message: "ID Kategori harus berupa UUID valid" }),
   name: z.string().min(2, { message: "Nama minimal 2 karakter" }),
   slug: z.string().min(2, { message: "Slug minimal 2 karakter" }),
   icon: z.string().optional().nullable(),
