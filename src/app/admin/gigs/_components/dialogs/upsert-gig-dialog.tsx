@@ -124,7 +124,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
 
-  // Integrasi Sesi Auth Client (Better-Auth) dengan Type Assertion
   const { data: sessionData } = authClient.useSession();
   const currentUser = sessionData?.user;
   const isSuperAdmin =
@@ -150,7 +149,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     ),
   });
 
-  // Sinkronisasi otomatis sellerId jika data sesi dimuat setelah render awal
   useEffect(() => {
     if (open && currentUser?.id && !form.getValues("sellerId")) {
       form.setValue("sellerId", currentUser.id);
@@ -238,12 +236,12 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
             variant="ghost"
             aria-label={`Edit ${gigToEdit.title}`}
             title={`Edit ${gigToEdit.title}`}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+            className="h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground shrink-0"
           >
             <Pencil className="h-4 w-4" />
           </Button>
         ) : (
-          <Button className="font-semibold gap-2 rounded-xl shadow-xs">
+          <Button className="font-semibold gap-2 rounded-xl shadow-xs w-full sm:w-auto h-10 sm:h-9">
             <Plus className="h-4 w-4" />
             <span>Tambah Gig Baru</span>
           </Button>
@@ -257,46 +255,69 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
       isPending={mutation.isPending}
       submitText={isEdit ? "Simpan Perubahan" : "Publikasikan Gig"}
       submitIcon={<Sparkles className="h-4 w-4" />}
-      maxWidth="md"
+      maxWidth="lg"
     >
       <FormProvider {...form}>
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as ActiveTab)}
-          className="w-full"
+          className="w-full space-y-3"
         >
-          <TabsList className="bg-muted/70 grid grid-cols-3 h-auto p-1 gap-1 rounded-xl">
+          <TabsList className="bg-muted/70 grid grid-cols-3 h-auto p-1 gap-1 rounded-xl w-full">
+            {/* Tab 1: Overview */}
             <TabsTrigger
               value="overview"
-              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative"
+              title="1. Overview"
+              aria-label="1. Overview"
+              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
-              <Info className="h-3.5 w-3.5" />
-              <span>1. Overview</span>
+              <Info className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
+              <span className="hidden sm:inline truncate">1. Overview</span>
               {hasOverviewError && (
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
+
+            {/* Tab 2: Atribut */}
             <TabsTrigger
               value="attributes"
               disabled={!isCategoryValid}
-              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5"
+              title={`2. Atribut (${attributeOptionIds.length})`}
+              aria-label={`2. Atribut (${attributeOptionIds.length})`}
+              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>2. Atribut ({attributeOptionIds.length})</span>
+              <SlidersHorizontal className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
+              <span className="hidden sm:inline truncate">
+                2. Atribut ({attributeOptionIds.length})
+              </span>
+              {/* Micro-badge hitungan atribut khusus tampilan ikon mobile */}
+              {attributeOptionIds.length > 0 && (
+                <span className="sm:hidden font-mono text-[9px] font-black bg-primary/15 text-primary px-1 rounded-md">
+                  {attributeOptionIds.length}
+                </span>
+              )}
             </TabsTrigger>
+
+            {/* Tab 3: Paket Harga */}
             <TabsTrigger
               value="packages"
               disabled={!isCategoryValid}
-              className="text-xs font-bold py-1.5 h-8 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative"
+              title="3. Paket Harga"
+              aria-label="3. Paket Harga"
+              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
-              <Package className="h-3.5 w-3.5" />
-              <span>3. Paket Harga</span>
+              <Package className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
+              <span className="hidden sm:inline truncate">3. Paket Harga</span>
               {hasPackagesError && (
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="overview">
+
+          <TabsContent
+            value="overview"
+            className="mt-0 focus-visible:outline-none"
+          >
             <GigOverviewTab
               sellers={sellers}
               subcategories={subcategories}
@@ -306,10 +327,16 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               currentUserId={currentUser?.id}
             />
           </TabsContent>
-          <TabsContent value="attributes">
+          <TabsContent
+            value="attributes"
+            className="mt-0 focus-visible:outline-none"
+          >
             <GigAttributesTab attributes={catMeta?.attributes} />
           </TabsContent>
-          <TabsContent value="packages">
+          <TabsContent
+            value="packages"
+            className="mt-0 focus-visible:outline-none"
+          >
             <GigPackagesTab packageFeatures={catMeta?.packageFeatures} />
           </TabsContent>
         </Tabs>

@@ -31,6 +31,7 @@ import {
   Layers,
   FileText,
   ImageIcon,
+  User,
 } from "lucide-react";
 import {
   slugify,
@@ -199,11 +200,13 @@ export function GigOverviewTab({
 
       {/* SECTION 2: Relasi & Kepemilikan (Seller & Sub-Category) */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3.5">
-        <div className="flex items-center gap-2 pb-1 border-b border-border/40">
-          <UserCheck className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-            Kepemilikan & Kategori
-          </span>
+        <div className="flex items-center justify-between pb-1 border-b border-border/40">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Kepemilikan & Kategori
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -215,51 +218,64 @@ export function GigOverviewTab({
               const activeSellerId = !isSuperAdmin
                 ? (currentUserId ?? field.value)
                 : field.value;
+              const currentSellerName =
+                sellers?.find((s) => s.id === activeSellerId)?.name ??
+                "Akun Anda";
 
               return (
-                <FormItem>
+                <FormItem className="space-y-1.5">
                   <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center justify-between">
                     <span>Seller / Freelancer</span>
-                    {!isSuperAdmin && (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] font-semibold text-primary px-1.5 py-0"
-                      >
-                        Akun Anda
-                      </Badge>
-                    )}
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={activeSellerId ?? undefined}
-                    disabled={isPending || !isSuperAdmin}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-10 sm:h-9 text-xs disabled:opacity-85 disabled:bg-muted/50">
-                        <SelectValue placeholder="Pilih Seller" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isSuperAdmin ? (
-                        sellers?.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem
-                          value={currentUserId ?? field.value ?? "self"}
+
+                  {!isSuperAdmin ? (
+                    /* Read-Only Profile Chip untuk Non-SuperAdmin */
+                    <div className="flex items-center justify-between h-10 sm:h-9 px-3 rounded-xl border border-border/80 bg-muted/40 text-xs text-foreground font-medium transition-colors">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                          {currentSellerName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="truncate font-semibold">
+                          {currentSellerName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold text-primary px-1.5 py-0"
                         >
-                          {sellers?.find((s) => s.id === currentUserId)?.name ??
-                            "Akun Anda"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {!isSuperAdmin && (
-                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                      Otomatis dikunci ke identitas akun toko Anda.
-                    </p>
+                          Akun Anda
+                        </Badge>
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground/70" />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Rich Dropdown Selector untuk SuperAdmin */
+                    <Select
+                      onValueChange={field.onChange}
+                      value={activeSellerId ?? undefined}
+                      disabled={isPending}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-10 sm:h-9 text-xs">
+                          <SelectValue placeholder="Pilih Seller" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {sellers?.map((s) => (
+                          <SelectItem
+                            key={s.id}
+                            value={s.id}
+                            className="text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span>{s.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                   <FormMessage />
                 </FormItem>
@@ -272,10 +288,9 @@ export function GigOverviewTab({
             control={form.control}
             name="categoryId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                  <Layers className="h-3 w-3 text-muted-foreground" />
-                  <span>Sub-Kategori</span>
+              <FormItem className="space-y-1.5">
+                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                  Sub-Kategori
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
@@ -289,8 +304,11 @@ export function GigOverviewTab({
                   </FormControl>
                   <SelectContent>
                     {subcategories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                      <SelectItem key={c.id} value={c.id} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                          <span>{c.name}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
