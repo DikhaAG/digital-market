@@ -10,7 +10,7 @@ import { AdminService } from "@/server/services/admin.service";
 
 export const adminRouter = router({
   // --------------------------------------------------------------------------
-  // ADMIN & SUPER ADMIN SHARED PROCEDURES
+  // ADMIN & SUPER ADMIN SHARED PROCEDURES (DENGAN ISOLASI DATA STRICT)
   // --------------------------------------------------------------------------
   getCategoryGigMeta: adminProcedure
     .input(
@@ -29,7 +29,7 @@ export const adminRouter = router({
 
   getGigDetail: adminProcedure
     .input(z.object({ id: z.uuid() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const gig = await db.query.gigs.findFirst({
         where: { id: input.id },
         with: {
@@ -46,18 +46,24 @@ export const adminRouter = router({
           message: "Gig tidak ditemukan",
         });
       }
+
+      // Security Guard: Seller biasa hanya diizinkan melihat detail Gig miliknya sendiri
+      if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Anda tidak memiliki hak akses untuk melihat Gig ini",
+        });
+      }
+
       return gig;
     }),
 
   upsertGig: adminProcedure
     .input(gigFormSchema)
     .mutation(async ({ input, ctx }) => {
-      // 1. Jika mode Update (id ada), verifikasi pemilik gig
       if (input.id) {
         const existingGig = await db.query.gigs.findFirst({
-          where: {
-            id: input.id,
-          },
+          where: { id: input.id },
           columns: { sellerId: true },
         });
 
@@ -79,7 +85,6 @@ export const adminRouter = router({
         }
       }
 
-      // 2. Pastikan Seller biasa tidak bisa memalsukan sellerId milik orang lain saat membuat Gig baru
       const targetSellerId =
         ctx.user.role === "super_admin" ? input.sellerId : ctx.user.id;
 
@@ -88,6 +93,7 @@ export const adminRouter = router({
         sellerId: targetSellerId,
       });
     }),
+
   getGigsForAudit: adminProcedure
     .input(
       z.object({
@@ -100,8 +106,16 @@ export const adminRouter = router({
         limit: z.number().min(1).default(10),
       }),
     )
-    .query(async ({ input }) => {
-      return await AdminService.getGigsForAudit(input);
+    .query(async ({ input, ctx }) => {
+      // Best Practice 2026: Mandatory Data Scoping untuk Multi-Tenant Admin
+      // Jika role adalah Seller ('admin'), paksa query sellerId ke ID akun milik dirinya sendiri
+      const forcedSellerId =
+        ctx.user.role === "super_admin" ? input.sellerId : ctx.user.id;
+
+      return await AdminService.getGigsForAudit({
+        ...input,
+        sellerId: forcedSellerId,
+      });
     }),
 
   getAllSellers: adminProcedure.query(async () => {
@@ -125,14 +139,11 @@ export const adminRouter = router({
     return await AdminService.getCategoryTree();
   }),
 
-  /** Soft Delete / Arsip Gig oleh Admin (Seller) atau Super Admin */
   softDeleteGig: adminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input, ctx }) => {
       const gig = await db.query.gigs.findFirst({
-        where: {
-          id: input.id,
-        },
+        where: { id: input.id },
         columns: { id: true, sellerId: true, deletedAt: true },
       });
 
@@ -143,7 +154,6 @@ export const adminRouter = router({
         });
       }
 
-      // Enforcement: Seller biasa hanya boleh mengarsipkan Gig miliknya sendiri
       if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -160,14 +170,11 @@ export const adminRouter = router({
       return updated;
     }),
 
-  /** Pemulihan (Restore) Gig oleh Admin (Seller) atau Super Admin */
   restoreGig: adminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input, ctx }) => {
       const gig = await db.query.gigs.findFirst({
-        where: {
-          id: input.id,
-        },
+        where: { id: input.id },
         columns: { id: true, sellerId: true, deletedAt: true },
       });
 
@@ -178,7 +185,6 @@ export const adminRouter = router({
         });
       }
 
-      // Enforcement: Seller biasa hanya boleh memulihkan Gig miliknya sendiri
       if (ctx.user.role !== "super_admin" && gig.sellerId !== ctx.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -196,11 +202,9 @@ export const adminRouter = router({
     }),
 
   // --------------------------------------------------------------------------
-  // SUPER ADMIN EXCLUSIVE PROCEDURES (Best Practice Governance)
+  // SUPER ADMIN EXCLUSIVE PROCEDURES (Akses Penuh Hanya untuk Super Admin)
   // --------------------------------------------------------------------------
-
-  /** Query seluruh daftar akun pengguna dengan filter & paginasi */
-  getUsersForManagement: adminProcedure
+  getUsersForManagement: superAdminProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -214,7 +218,6 @@ export const adminRouter = router({
       return await AdminService.getUsersForManagement(input);
     }),
 
-  /** Mengubah Role Pengguna (User, Seller/Admin, & Super Admin) */
   updateUserRole: superAdminProcedure
     .input(
       z.object({
@@ -239,7 +242,6 @@ export const adminRouter = router({
       return updated;
     }),
 
-  /** Bekukan/Aktifkan Akses Pengelola (Banned Status) */
   toggleUserBanStatus: superAdminProcedure
     .input(
       z.object({
@@ -264,14 +266,12 @@ export const adminRouter = router({
       return updated;
     }),
 
-  /** Mengambil seluruh akun pengelola untuk audit sistem */
   getAllAdminAccounts: superAdminProcedure.query(async () => {
     return await db.query.user.findMany({
       orderBy: { createdAt: "desc" },
     });
   }),
 
-  /** Hapus Gig secara permanen oleh Super Admin (Hard Delete) */
   deleteGig: superAdminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {
@@ -279,7 +279,6 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  /** Hapus Kategori secara permanen oleh Super Admin */
   deleteCategory: superAdminProcedure
     .input(z.object({ id: z.uuid() }))
     .mutation(async ({ input }) => {

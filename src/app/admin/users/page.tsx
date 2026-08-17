@@ -17,15 +17,16 @@ export default async function AdminUsersPage() {
     redirect("/login?error=banned");
   }
 
-  if (!["admin", "super_admin"].includes(session.user.role)) {
-    redirect("/login?error=unauthorized");
+  // Best Practice 2026: Strict RBAC check (Eksklusif Super Admin)
+  if (session.user.role !== "super_admin") {
+    redirect("/admin?error=unauthorized");
   }
 
   return (
     <AdminUsersClient
       currentUser={{
         id: session.user.id,
-        role: session.user.role as "super_admin" | "admin" | "user",
+        role: "super_admin",
       }}
     />
   );

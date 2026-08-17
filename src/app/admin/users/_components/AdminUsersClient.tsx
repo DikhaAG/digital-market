@@ -36,7 +36,7 @@ import {
 interface AdminUsersClientProps {
   currentUser: {
     id: string;
-    role: "super_admin" | "admin" | "user";
+    role: "super_admin";
   };
 }
 
@@ -52,8 +52,6 @@ function getInitials(name?: string) {
 }
 
 export function AdminUsersClient({ currentUser }: AdminUsersClientProps) {
-  const isSuperAdmin = currentUser.role === "super_admin";
-
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<
     "all" | "super_admin" | "admin" | "user"
@@ -106,10 +104,6 @@ export function AdminUsersClient({ currentUser }: AdminUsersClientProps) {
     targetUserId: string,
     newRole: "user" | "admin" | "super_admin",
   ) => {
-    if (!isSuperAdmin) {
-      toast.error("Hanya Super Admin yang dapat mengubah role pengguna");
-      return;
-    }
     updateRoleMutation.mutate({ targetUserId, newRole });
   };
 
@@ -117,10 +111,6 @@ export function AdminUsersClient({ currentUser }: AdminUsersClientProps) {
     targetUserId: string,
     currentBannedStatus: boolean,
   ) => {
-    if (!isSuperAdmin) {
-      toast.error("Hanya Super Admin yang dapat membekukan pengguna");
-      return;
-    }
     toggleBanMutation.mutate({ targetUserId, banned: !currentBannedStatus });
   };
 
@@ -383,17 +373,11 @@ export function AdminUsersClient({ currentUser }: AdminUsersClientProps) {
                       <td className="px-4 py-3 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                className="h-7 w-7 cursor-pointer"
-                                disabled={!isSuperAdmin || isSelf}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            }
-                          ></DropdownMenuTrigger>
+                            disabled={isSelf}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
                             className="w-48 text-xs"
@@ -437,8 +421,8 @@ export function AdminUsersClient({ currentUser }: AdminUsersClientProps) {
                               }
                               className={`cursor-pointer ${
                                 item.banned
-                                  ? "text-emerald-600 focus:text-emerald-600"
-                                  : "text-destructive focus:text-destructive"
+                                  ? "text-emerald-600"
+                                  : "text-destructive"
                               }`}
                             >
                               {item.banned ? (
