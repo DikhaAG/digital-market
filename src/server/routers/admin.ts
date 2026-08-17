@@ -199,19 +199,27 @@ export const adminRouter = router({
   // SUPER ADMIN EXCLUSIVE PROCEDURES (Best Practice Governance)
   // --------------------------------------------------------------------------
 
-  /** Mengambil seluruh akun pengelola untuk audit sistem */
-  getAllAdminAccounts: superAdminProcedure.query(async () => {
-    return await db.query.user.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-  }),
+  /** Query seluruh daftar akun pengguna dengan filter & paginasi */
+  getUsersForManagement: adminProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        role: z.enum(["super_admin", "admin", "user"]).optional(),
+        banned: z.boolean().optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).default(10),
+      }),
+    )
+    .query(async ({ input }) => {
+      return await AdminService.getUsersForManagement(input);
+    }),
 
-  /** Mengubah Role Pengguna (Promote/Demote antara Admin & Super Admin) */
+  /** Mengubah Role Pengguna (User, Seller/Admin, & Super Admin) */
   updateUserRole: superAdminProcedure
     .input(
       z.object({
         targetUserId: z.string().min(1),
-        newRole: z.enum(["admin", "super_admin"]),
+        newRole: z.enum(["user", "admin", "super_admin"]),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -255,6 +263,13 @@ export const adminRouter = router({
 
       return updated;
     }),
+
+  /** Mengambil seluruh akun pengelola untuk audit sistem */
+  getAllAdminAccounts: superAdminProcedure.query(async () => {
+    return await db.query.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }),
 
   /** Hapus Gig secara permanen oleh Super Admin (Hard Delete) */
   deleteGig: superAdminProcedure

@@ -1,12 +1,12 @@
 // src/server/services/admin.service.ts
-
-import { and, count, eq, ilike, isNull } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   gigs,
   gigAttributeOptions,
   gigPackages,
   gigPackageFeatureValues,
+  user,
 } from "@/lib/db/schema";
 import { GigFormValues } from "@/lib/validations/gig";
 
@@ -14,8 +14,69 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export class AdminService {
   /**
+   * Mengambil daftar pengguna untuk tata kelola RBAC (User, Seller/Admin, Super Admin)
+   * Menggunakan Drizzle Core API untuk menghindari konflik Relational Query Decoder
+   */
+  static async getUsersForManagement(input: {
+    search?: string;
+    role?: "super_admin" | "admin" | "user";
+    banned?: boolean;
+    page: number;
+    limit: number;
+  }) {
+    const { search, role, banned, page, limit } = input;
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+
+    if (search?.trim()) {
+      conditions.push(ilike(user.name, `%${search.trim()}%`));
+    }
+    if (role) {
+      conditions.push(eq(user.role, role));
+    }
+    if (banned !== undefined) {
+      conditions.push(eq(user.banned, banned));
+    }
+
+    const whereCondition =
+      conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Kueri Utama dengan Drizzle Core API
+    const itemsQuery = db
+      .select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        role: user.role,
+        banned: user.banned,
+        createdAt: user.createdAt,
+      })
+      .from(user)
+      .where(whereCondition)
+      .orderBy(desc(user.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Kueri Hitungan Total
+    const countQuery = db
+      .select({ total: count() })
+      .from(user)
+      .where(whereCondition);
+
+    const [items, totalResult] = await Promise.all([itemsQuery, countQuery]);
+    const total = Number(totalResult[0]?.total ?? 0);
+
+    return {
+      items,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * Mengambil Tree Kategori dengan Hitungan Gig yang Teroptimasi
-   * Menjalankan kueri pohon kategori & kueri GROUP BY Gig secara paralel (< 30ms)
    */
   static async getCategoryTree() {
     const gigCountsQuery = db
@@ -103,13 +164,12 @@ export class AdminService {
   }
 
   /**
-   * Optimized Upsert Gig dengan Eksekusi Batch Transaksi
+   * Upsert Gig dengan Eksekusi Batch Transaksi
    */
   static async upsertGig(input: GigFormValues) {
     return await db.transaction(async (tx: Transaction) => {
       let gigId = input.id;
 
-      // 1. [gigs] Insert or Update Data Utama
       if (gigId) {
         await tx
           .update(gigs)
@@ -137,7 +197,6 @@ export class AdminService {
         gigId = inserted.id;
       }
 
-      // 2. [gigAttributeOptions] Sync Junction Filter Atribut
       await tx
         .delete(gigAttributeOptions)
         .where(eq(gigAttributeOptions.gigId, gigId));
@@ -151,7 +210,6 @@ export class AdminService {
         );
       }
 
-      // 3. [gigPackages & gigPackageFeatureValues] Sync Paket Harga & Fitur
       await tx.delete(gigPackages).where(eq(gigPackages.gigId, gigId));
 
       if (input.packages.length > 0) {
