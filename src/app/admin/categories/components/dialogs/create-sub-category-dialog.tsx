@@ -3,14 +3,12 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
-import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { BaseAdminDialog } from "../base-admin-dialog";
 import { CategoryFormFields } from "./category-form-fields";
+import { useCategoryActions } from "../../_hooks/use-category-actions";
 import {
   subCategorySchema,
-  slugify,
   type SubCategoryInput,
 } from "../../_schemas/category-admin.schema";
 
@@ -23,19 +21,12 @@ export function CreateSubCategoryDialog({
   parentId,
   parentName,
 }: CreateSubCategoryDialogProps) {
-  const utils = trpc.useUtils();
   const form = useForm<SubCategoryInput>({
     resolver: zodResolver(subCategorySchema),
     defaultValues: { name: "", icon: "", image: "" },
   });
 
-  const mutation = trpc.admin.createCategory.useMutation({
-    onSuccess: () => {
-      toast.success("Sub-kategori berhasil dibuat");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message || "Gagal membuat sub-kategori"),
-  });
+  const { handleCreateCategory, isMutatingCategory } = useCategoryActions();
 
   return (
     <BaseAdminDialog
@@ -55,22 +46,16 @@ export function CreateSubCategoryDialog({
       description={`Menambahkan sub-kategori baru di bawah induk "${parentName}".`}
       form={form}
       onSubmit={(data) =>
-        mutation.mutate({
-          name: data.name,
-          slug: slugify(data.name),
-          parentId,
-          icon: data.icon || null,
-          image: data.image || null,
-        })
+        handleCreateCategory({ ...data, parentId }, () => form.reset())
       }
-      isPending={mutation.isPending}
+      isPending={isMutatingCategory}
       submitText="Simpan Sub-kategori"
       submitIcon={null}
       maxWidth="md"
     >
       <CategoryFormFields
         form={form}
-        isPending={mutation.isPending}
+        isPending={isMutatingCategory}
         nameLabel="Nama Sub-Kategori"
         namePlaceholder="Contoh: Web Development"
       />

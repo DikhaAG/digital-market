@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
 
-/** Utility helper untuk konversi string ke URL Slug */
-export const slugify = (str: string) =>
+/** Single source of truth untuk pembuatan Slug */
+export const slugify = (str: string): string =>
   str
     .toLowerCase()
     .trim()
@@ -15,6 +15,7 @@ export const slugify = (str: string) =>
 // CENTRALIZED TRPC ROUTER TYPES
 // ============================================================================
 type RouterOutput = inferRouterOutputs<AppRouter>;
+
 export type ParentCategoryItem =
   RouterOutput["admin"]["getCategoryTree"][number];
 export type SubCategoryItem = ParentCategoryItem["subcategories"][number];
@@ -23,7 +24,7 @@ export type AttributeItem = SubCategoryItem["attributes"][number];
 export type AttributeOptionItem = AttributeItem["options"][number];
 
 // ============================================================================
-// CATEGORY SCHEMAS & INPUT TYPES
+// SCHEMAS
 // ============================================================================
 export const parentCategorySchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter" }),
@@ -52,11 +53,7 @@ export const attributeSchema = z.object({
 
 export const attributeOptionSchema = z.object({
   label: z.string().min(1, { message: "Label opsi tidak boleh kosong" }),
-  value: z.string().min(1, { message: "Nilai value tidak boleh kosong" }),
-});
-
-export const attributeOptionFormSchema = z.object({
-  label: z.string().min(1, { message: "Label opsi tidak boleh kosong" }),
+  value: z.string().optional(),
 });
 
 export const updateCategorySchema = z.object({
@@ -77,6 +74,3 @@ export type SubCategoryInput = z.infer<typeof subCategorySchema>;
 export type PackageFeatureInput = z.infer<typeof packageFeatureSchema>;
 export type AttributeInput = z.infer<typeof attributeSchema>;
 export type AttributeOptionInput = z.infer<typeof attributeOptionSchema>;
-export type AttributeOptionFormInput = z.infer<
-  typeof attributeOptionFormSchema
->;

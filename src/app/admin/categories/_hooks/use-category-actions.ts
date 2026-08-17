@@ -1,90 +1,182 @@
-// src/app/admin/categories/_hooks/use-category-actions.ts
 "use client";
 
+import { useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "sonner";
+import { slugify } from "../_schemas/category-admin.schema";
 
-/**
- * Unified Command Hook untuk seluruh operasi mutasi Kategori, Atribut, Opsi, dan Fitur Paket
- */
+interface MutationOptions {
+  loadingMessage?: string;
+  successMessage: string;
+  errorMessage?: string;
+  onSuccess?: () => void;
+}
+
 export function useCategoryActions() {
   const utils = trpc.useUtils();
+  const toastIdRef = useRef<string | number | null>(null);
 
-  // Unified Cache Invalidation
-  const invalidateTree = () => utils.admin.getCategoryTree.invalidate();
+  const invalidateTree = useCallback(() => {
+    return utils.admin.getCategoryTree.invalidate();
+  }, [utils]);
 
-  // Mutations Setup
-  const createAttributeMutation = trpc.admin.createAttribute.useMutation({
-    onSuccess: () => {
-      toast.success("Atribut filter berhasil ditambahkan");
-      invalidateTree();
-    },
-    onError: (err) => toast.error(err.message || "Gagal menambah atribut"),
-  });
-
-  const deleteAttributeMutation = trpc.admin.deleteAttribute.useMutation({
-    onSuccess: () => {
-      toast.success("Atribut berhasil dihapus");
-      invalidateTree();
-    },
-    onError: (err) => toast.error(err.message || "Gagal menghapus atribut"),
-  });
-
-  const createAttributeOptionMutation =
-    trpc.admin.createAttributeOption.useMutation({
-      onSuccess: () => {
-        toast.success("Opsi atribut ditambahkan");
-        invalidateTree();
+  const createOptions = useCallback(
+    ({
+      loadingMessage,
+      successMessage,
+      errorMessage = "Terjadi kesalahan",
+      onSuccess,
+    }: MutationOptions) => ({
+      onMutate: () => {
+        if (loadingMessage) {
+          toastIdRef.current = toast.loading(loadingMessage);
+        }
       },
-      onError: (err) => toast.error(err.message || "Gagal menambah opsi"),
-    });
-
-  const deleteAttributeOptionMutation =
-    trpc.admin.deleteAttributeOption.useMutation({
       onSuccess: () => {
-        toast.success("Opsi atribut dihapus");
+        if (toastIdRef.current) {
+          toast.success(successMessage, { id: toastIdRef.current });
+          toastIdRef.current = null;
+        } else {
+          toast.success(successMessage);
+        }
         invalidateTree();
+        onSuccess?.();
       },
-      onError: (err) => toast.error(err.message || "Gagal menghapus opsi"),
-    });
-
-  const addPackageFeatureMutation = trpc.admin.addPackageFeature.useMutation({
-    onSuccess: () => {
-      toast.success("Fitur paket ditambahkan");
-      invalidateTree();
-    },
-    onError: (err) => toast.error(err.message || "Gagal menambah fitur"),
-  });
-
-  const deletePackageFeatureMutation =
-    trpc.admin.deletePackageFeature.useMutation({
-      onSuccess: () => {
-        toast.success("Fitur paket dihapus");
-        invalidateTree();
+      onError: (err: { message?: string }) => {
+        const message = err.message || errorMessage;
+        if (toastIdRef.current) {
+          toast.error(message, { id: toastIdRef.current });
+          toastIdRef.current = null;
+        } else {
+          toast.error(message);
+        }
       },
-      onError: (err) => toast.error(err.message || "Gagal menghapus fitur"),
-    });
+    }),
+    [invalidateTree],
+  );
+
+  const createCategory = trpc.admin.createCategory.useMutation(
+    createOptions({ successMessage: "Kategori berhasil dibuat" }),
+  );
+  const updateCategory = trpc.admin.updateCategory.useMutation(
+    createOptions({
+      loadingMessage: "Memperbarui kategori...",
+      successMessage: "Kategori berhasil diperbarui",
+    }),
+  );
+  const deleteCategory = trpc.admin.deleteCategory.useMutation(
+    createOptions({ successMessage: "Kategori berhasil dihapus" }),
+  );
+
+  const createAttribute = trpc.admin.createAttribute.useMutation(
+    createOptions({ successMessage: "Atribut berhasil ditambahkan" }),
+  );
+  const deleteAttribute = trpc.admin.deleteAttribute.useMutation(
+    createOptions({ successMessage: "Atribut berhasil dihapus" }),
+  );
+
+  const createAttributeOption = trpc.admin.createAttributeOption.useMutation(
+    createOptions({ successMessage: "Opsi atribut berhasil ditambahkan" }),
+  );
+  const deleteAttributeOption = trpc.admin.deleteAttributeOption.useMutation(
+    createOptions({ successMessage: "Opsi atribut berhasil dihapus" }),
+  );
+
+  const addPackageFeature = trpc.admin.addPackageFeature.useMutation(
+    createOptions({ successMessage: "Fitur paket berhasil ditambahkan" }),
+  );
+  const deletePackageFeature = trpc.admin.deletePackageFeature.useMutation(
+    createOptions({ successMessage: "Fitur paket berhasil dihapus" }),
+  );
 
   return {
-    createAttribute: createAttributeMutation.mutate,
-    isCreatingAttribute: createAttributeMutation.isPending,
+    // Category Wrappers dengan Enkapsulasi Slug
+    handleCreateCategory: (
+      data: {
+        name: string;
+        parentId?: string | null;
+        icon?: string | null;
+        image?: string | null;
+      },
+      onSuccess?: () => void,
+    ) => {
+      createCategory.mutate(
+        {
+          name: data.name,
+          slug: slugify(data.name),
+          parentId: data.parentId || null,
+          icon: data.icon || null,
+          image: data.image || null,
+        },
+        { onSuccess },
+      );
+    },
 
-    deleteAttribute: deleteAttributeMutation.mutate,
-    isDeletingAttribute: deleteAttributeMutation.isPending,
-    deletingAttributeId: deleteAttributeMutation.variables?.id,
+    handleUpdateCategory: (
+      data: {
+        id: string;
+        name: string;
+        icon?: string | null;
+        image?: string | null;
+      },
+      onSuccess?: () => void,
+    ) => {
+      const generatedSlug = slugify(data.name);
+      updateCategory.mutate(
+        {
+          id: data.id,
+          name: data.name,
+          slug:
+            generatedSlug.length >= 2 ? generatedSlug : `${generatedSlug}-cat`,
+          icon: data.icon || null,
+          image: data.image || null,
+        },
+        { onSuccess },
+      );
+    },
 
-    createAttributeOption: createAttributeOptionMutation.mutate,
-    isCreatingAttributeOption: createAttributeOptionMutation.isPending,
+    deleteCategory: deleteCategory.mutate,
+    isDeletingCategory: deleteCategory.isPending,
+    isMutatingCategory: createCategory.isPending || updateCategory.isPending,
 
-    deleteAttributeOption: deleteAttributeOptionMutation.mutate,
-    isDeletingAttributeOption: deleteAttributeOptionMutation.isPending,
-    deletingOptionId: deleteAttributeOptionMutation.variables?.id,
+    // Attribute Actions
+    handleCreateAttribute: (
+      categoryId: string,
+      name: string,
+      onSuccess?: () => void,
+    ) => {
+      createAttribute.mutate(
+        { categoryId, name, slug: slugify(name) },
+        { onSuccess },
+      );
+    },
+    deleteAttribute: deleteAttribute.mutate,
+    isDeletingAttribute: deleteAttribute.isPending,
+    deletingAttributeId: deleteAttribute.variables?.id,
+    isCreatingAttribute: createAttribute.isPending,
 
-    addPackageFeature: addPackageFeatureMutation.mutate,
-    isAddingPackageFeature: addPackageFeatureMutation.isPending,
+    // Attribute Option Actions
+    handleCreateAttributeOption: (
+      attributeId: string,
+      label: string,
+      value?: string,
+      onSuccess?: () => void,
+    ) => {
+      createAttributeOption.mutate(
+        { attributeId, label, value: value || slugify(label) },
+        { onSuccess },
+      );
+    },
+    deleteAttributeOption: deleteAttributeOption.mutate,
+    isDeletingAttributeOption: deleteAttributeOption.isPending,
+    deletingOptionId: deleteAttributeOption.variables?.id,
+    isCreatingAttributeOption: createAttributeOption.isPending,
 
-    deletePackageFeature: deletePackageFeatureMutation.mutate,
-    isDeletingPackageFeature: deletePackageFeatureMutation.isPending,
-    deletingFeatureId: deletePackageFeatureMutation.variables?.id,
+    // Package Feature Actions
+    addPackageFeature: addPackageFeature.mutate,
+    deletePackageFeature: deletePackageFeature.mutate,
+    isAddingPackageFeature: addPackageFeature.isPending,
+    isDeletingPackageFeature: deletePackageFeature.isPending,
+    deletingFeatureId: deletePackageFeature.variables?.id,
   };
 }

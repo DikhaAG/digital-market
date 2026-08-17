@@ -1,4 +1,3 @@
-// src/app/admin/categories/page.tsx
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,19 +30,22 @@ export default function CategoryAdminPage() {
           Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="border border-border/60 rounded-2xl p-5 space-y-4 bg-card"
+              className="border border-border/80 rounded-2xl p-5 space-y-4 bg-card"
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="h-9 w-9 rounded-xl" />
+                  <Skeleton className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl" />
                   <div className="space-y-1.5">
                     <Skeleton className="h-5 w-40" />
                     <Skeleton className="h-3 w-24" />
                   </div>
                 </div>
-                <Skeleton className="h-8 w-28 rounded-lg" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-24 rounded-lg" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
               </div>
-              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-32 w-full rounded-xl" />
             </div>
           ))
         ) : categoryTree.length > 0 ? (

@@ -6,10 +6,9 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseAdminDialog } from "../base-admin-dialog";
 import { CategoryFormFields } from "./category-form-fields";
-import { useCategoryTreeMutation } from "../../_hooks/use-category-tree-mutation";
+import { useCategoryActions } from "../../_hooks/use-category-actions";
 import {
   parentCategorySchema,
-  slugify,
   type ParentCategoryInput,
 } from "../../_schemas/category-admin.schema";
 
@@ -38,15 +37,7 @@ export function EditCategoryDialog({
     },
   });
 
-  const { trpc, createOptions } = useCategoryTreeMutation();
-
-  const mutation = trpc.admin.updateCategory.useMutation(
-    createOptions({
-      loadingMessage: "Memperbarui kategori...",
-      successMessage: "Kategori berhasil diperbarui",
-      errorMessage: "Gagal memperbarui kategori",
-    }),
-  );
+  const { handleUpdateCategory, isMutatingCategory } = useCategoryActions();
 
   return (
     <BaseAdminDialog
@@ -64,23 +55,14 @@ export function EditCategoryDialog({
       title={title}
       description={description}
       form={form}
-      onSubmit={(data) => {
-        const generatedSlug = slugify(data.name);
-
-        mutation.mutate({
-          id: category.id,
-          name: data.name,
-          slug:
-            generatedSlug.length >= 2 ? generatedSlug : `${generatedSlug}-cat`,
-          icon: data.icon || null,
-          image: data.image || null,
-        });
-      }}
-      isPending={mutation.isPending}
+      onSubmit={(data) =>
+        handleUpdateCategory({ id: category.id, ...data }, () => form.reset())
+      }
+      isPending={isMutatingCategory}
       submitText="Simpan Perubahan"
       maxWidth="md"
     >
-      <CategoryFormFields form={form} isPending={mutation.isPending} />
+      <CategoryFormFields form={form} isPending={isMutatingCategory} />
     </BaseAdminDialog>
   );
 }

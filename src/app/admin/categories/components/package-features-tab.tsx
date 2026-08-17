@@ -2,8 +2,6 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { trpc } from "@/lib/trpc/client";
-import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +16,27 @@ import {
 import {
   packageFeatureSchema,
   type PackageFeatureInput,
+  type PackageFeatureItem,
 } from "../_schemas/category-admin.schema";
+import { useCategoryActions } from "../_hooks/use-category-actions";
 
 interface PackageFeaturesTabProps {
   categoryId: string;
-  features: Array<{ id: string; name: string; type: string }>;
+  features: PackageFeatureItem[];
 }
 
 export function PackageFeaturesTab({
   categoryId,
   features,
 }: PackageFeaturesTabProps) {
-  const utils = trpc.useUtils();
+  const {
+    addPackageFeature,
+    isAddingPackageFeature,
+    deletePackageFeature,
+    isDeletingPackageFeature,
+    deletingFeatureId,
+  } = useCategoryActions();
+
   const {
     register,
     handleSubmit,
@@ -41,38 +48,20 @@ export function PackageFeaturesTab({
     defaultValues: { name: "", type: "boolean" },
   });
 
-  const addMutation = trpc.admin.addPackageFeature.useMutation({
-    onSuccess: () => {
-      toast.success("Fitur paket ditambahkan");
-      utils.admin.getCategoryTree.invalidate();
-      reset();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
   const onSubmit = (data: PackageFeatureInput) => {
-    if (!categoryId) {
-      toast.error("Category ID tidak valid");
-      return;
-    }
-    addMutation.mutate({
-      categoryId,
-      name: data.name,
-      type: data.type,
-    });
+    if (!categoryId) return;
+    addPackageFeature(
+      {
+        categoryId,
+        name: data.name,
+        type: data.type,
+      },
+      { onSuccess: () => reset() },
+    );
   };
-
-  const deleteMutation = trpc.admin.deletePackageFeature.useMutation({
-    onSuccess: () => {
-      toast.success("Fitur paket dihapus");
-      utils.admin.getCategoryTree.invalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
 
   return (
     <div className="pt-3 space-y-3">
-      {/* Inline Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <Input
@@ -88,11 +77,13 @@ export function PackageFeaturesTab({
                 onValueChange={field.onChange}
                 value={field.value ?? "boolean"}
               >
-                <SelectTrigger className="h-8 text-xs w-[160px]">
+                <SelectTrigger className="h-8 text-xs w-40">
                   <SelectValue placeholder="Pilih tipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="boolean">Boolean (✓ / ✗)</SelectItem>
+                  <SelectItem value="boolean">
+                    Boolean (Centang/Silang)
+                  </SelectItem>
                   <SelectItem value="number">Number (Angka)</SelectItem>
                   <SelectItem value="text">Text (Kustom)</SelectItem>
                 </SelectContent>
@@ -103,9 +94,9 @@ export function PackageFeaturesTab({
             type="submit"
             size="sm"
             className="h-8 text-xs font-semibold"
-            disabled={addMutation.isPending || !categoryId}
+            disabled={isAddingPackageFeature || !categoryId}
           >
-            {addMutation.isPending ? (
+            {isAddingPackageFeature ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <>
@@ -121,27 +112,38 @@ export function PackageFeaturesTab({
         )}
       </form>
 
-      {/* List Features */}
       <div className="flex flex-wrap gap-2 pt-1">
-        {features.map((feat) => (
-          <div
-            key={feat.id}
-            className="flex items-center gap-2 px-3 py-1 rounded-lg bg-card text-xs font-semibold text-foreground border border-border shadow-xs"
-          >
-            <span>{feat.name}</span>
-            <Badge variant="outline" className="text-[9px] uppercase px-1 py-0">
-              {feat.type}
-            </Badge>
-            <button
-              type="button"
-              onClick={() => deleteMutation.mutate({ id: feat.id })}
-              disabled={deleteMutation.isPending}
-              className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+        {features.map((feat) => {
+          const isDeletingThisFeat =
+            isDeletingPackageFeature && deletingFeatureId === feat.id;
+          return (
+            <div
+              key={feat.id}
+              className="flex items-center gap-2 px-3 py-1 rounded-lg bg-card text-xs font-semibold text-foreground border border-border shadow-xs"
             >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
+              <span>{feat.name}</span>
+              <Badge
+                variant="outline"
+                className="text-[9px] uppercase px-1 py-0"
+              >
+                {feat.type}
+              </Badge>
+              <button
+                type="button"
+                aria-label={`Hapus fitur ${feat.name}`}
+                onClick={() => deletePackageFeature({ id: feat.id })}
+                disabled={isDeletingThisFeat}
+                className="text-muted-foreground hover:text-destructive transition-colors ml-1 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingThisFeat ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

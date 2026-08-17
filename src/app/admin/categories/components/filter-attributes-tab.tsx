@@ -1,48 +1,31 @@
-// src/app/admin/categories/components/filter-attributes-tab.tsx
 "use client";
 
+import { memo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Tag, Trash2, X } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   attributeSchema,
-  attributeOptionFormSchema,
-  slugify,
+  attributeOptionSchema,
   type AttributeInput,
-  type AttributeOptionFormInput,
+  type AttributeOptionInput,
+  type AttributeItem,
+  type AttributeOptionItem,
 } from "../_schemas/category-admin.schema";
 import { useCategoryActions } from "../_hooks/use-category-actions";
 
-interface AttributeOption {
-  id: string;
-  label: string;
-  value: string;
-}
-
-interface Attribute {
-  id: string;
-  name: string;
-  slug: string;
-  options: AttributeOption[];
+interface FilterAttributesTabProps {
+  categoryId: string;
+  attributes: AttributeItem[];
 }
 
 export function FilterAttributesTab({
   categoryId,
   attributes,
-}: {
-  categoryId: string;
-  attributes: Attribute[];
-}) {
-  const {
-    createAttribute,
-    isCreatingAttribute,
-    deleteAttribute,
-    isDeletingAttribute,
-    deletingAttributeId,
-  } = useCategoryActions();
+}: FilterAttributesTabProps) {
+  const { handleCreateAttribute, isCreatingAttribute } = useCategoryActions();
 
   const {
     register,
@@ -56,17 +39,12 @@ export function FilterAttributesTab({
 
   const onAddAttribute = (data: AttributeInput) => {
     if (!categoryId) return;
-    createAttribute({
-      categoryId,
-      name: data.name,
-      slug: slugify(data.name),
-    });
-    reset();
+    handleCreateAttribute(categoryId, data.name, () => reset());
   };
 
   return (
     <div className="pt-3 space-y-4">
-      {/* Form Tambah Atribut */}
+      {/* Inline Form: Tambah Atribut */}
       <form onSubmit={handleSubmit(onAddAttribute)} className="space-y-1">
         <div className="flex items-center gap-2">
           <Input
@@ -96,63 +74,69 @@ export function FilterAttributesTab({
         )}
       </form>
 
-      {/* Grid Daftar Atribut */}
+      {/* Grid Atribut */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-        {attributes.map((attr) => {
-          const isDeletingThisAttr =
-            isDeletingAttribute && deletingAttributeId === attr.id;
-
-          return (
-            <div
-              key={attr.id}
-              className="p-3 rounded-lg border border-border bg-card space-y-2.5"
-            >
-              <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                <div className="flex items-center gap-1.5">
-                  <Tag className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-bold text-xs text-foreground">
-                    {attr.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    ({attr.slug})
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`Hapus atribut ${attr.name}`}
-                  onClick={() => deleteAttribute({ id: attr.id })}
-                  disabled={isDeletingThisAttr}
-                  className="text-muted-foreground hover:text-destructive p-1 transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {isDeletingThisAttr ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3 w-3" />
-                  )}
-                </button>
-              </div>
-
-              <AttributeOptionsList
-                attributeId={attr.id}
-                options={attr.options}
-              />
-            </div>
-          );
-        })}
+        {attributes.map((attr) => (
+          <AttributeCardItem key={attr.id} attr={attr} />
+        ))}
       </div>
     </div>
   );
 }
 
-function AttributeOptionsList({
+const AttributeCardItem = memo(function AttributeCardItem({
+  attr,
+}: {
+  attr: AttributeItem;
+}) {
+  const { deleteAttribute, isDeletingAttribute, deletingAttributeId } =
+    useCategoryActions();
+  const isDeletingThisAttr =
+    isDeletingAttribute && deletingAttributeId === attr.id;
+
+  return (
+    <div className="p-3 rounded-lg border border-border bg-card space-y-2.5">
+      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Tag className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="font-bold text-xs text-foreground truncate">
+            {attr.name}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-mono truncate">
+            ({attr.slug})
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={`Hapus atribut ${attr.name}`}
+          onClick={() => deleteAttribute({ id: attr.id })}
+          disabled={isDeletingThisAttr}
+          className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
+        >
+          {isDeletingThisAttr ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Trash2 className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+
+      <AttributeOptionsList attributeId={attr.id} options={attr.options} />
+    </div>
+  );
+});
+
+const AttributeOptionsList = memo(function AttributeOptionsList({
   attributeId,
   options,
 }: {
   attributeId: string;
-  options: AttributeOption[];
+  options: AttributeOptionItem[];
 }) {
   const {
-    createAttributeOption,
+    handleCreateAttributeOption,
     isCreatingAttributeOption,
     deleteAttributeOption,
     isDeletingAttributeOption,
@@ -164,29 +148,24 @@ function AttributeOptionsList({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<AttributeOptionFormInput>({
-    resolver: zodResolver(attributeOptionFormSchema),
+  } = useForm<AttributeOptionInput>({
+    resolver: zodResolver(attributeOptionSchema),
     defaultValues: { label: "" },
   });
 
-  const onAddOption = (data: AttributeOptionFormInput) => {
+  const onAddOption = (data: AttributeOptionInput) => {
     if (!attributeId || !data.label) return;
-    createAttributeOption({
-      attributeId,
-      label: data.label,
-      value: slugify(data.label),
-    });
-    reset();
+    handleCreateAttributeOption(attributeId, data.label, data.value, () =>
+      reset(),
+    );
   };
 
   return (
     <div className="space-y-2">
-      {/* List Badge Opsi */}
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => {
           const isDeletingThisOpt =
             isDeletingAttributeOption && deletingOptionId === opt.id;
-
           return (
             <span
               key={opt.id}
@@ -211,7 +190,7 @@ function AttributeOptionsList({
         })}
       </div>
 
-      {/* Form Tambah Opsi */}
+      {/* Inline Form: Tambah Opsi */}
       <form onSubmit={handleSubmit(onAddOption)} className="space-y-1 pt-1">
         <div className="flex items-center gap-1.5">
           <Input
@@ -241,4 +220,4 @@ function AttributeOptionsList({
       </form>
     </div>
   );
-}
+});

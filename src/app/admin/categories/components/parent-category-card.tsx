@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { CreateSubCategoryDialog, EditCategoryDialog } from "./dialogs";
 import { SubCategoryCard } from "./sub-category-card";
-import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
 import { type ParentCategoryItem } from "../_schemas/category-admin.schema";
+import { useCategoryActions } from "../_hooks/use-category-actions";
 
 interface ParentCategoryCardProps {
   parent: ParentCategoryItem;
@@ -18,11 +18,7 @@ interface ParentCategoryCardProps {
 export const ParentCategoryCard = memo(function ParentCategoryCard({
   parent,
 }: ParentCategoryCardProps) {
-  const { trpc, createOptions } = useCategoryTreeMutation();
-
-  const deleteMutation = trpc.admin.deleteCategory.useMutation(
-    createOptions({ successMessage: "Kategori utama berhasil dihapus" }),
-  );
+  const { deleteCategory, isDeletingCategory } = useCategoryActions();
 
   return (
     <div className="border border-border/80 rounded-2xl bg-card overflow-hidden shadow-2xs transition-all hover:border-border">
@@ -34,7 +30,7 @@ export const ParentCategoryCard = memo(function ParentCategoryCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
-              <h3 className="font-black text-foreground text-base sm:text-lg truncate max-w-[200px] sm:max-w-md">
+              <h3 className="font-black text-foreground text-base sm:text-lg truncate max-w-50 sm:max-w-md">
                 {parent.name}
               </h3>
               <Badge
@@ -63,8 +59,8 @@ export const ParentCategoryCard = memo(function ParentCategoryCard({
           <DeleteConfirmDialog
             title={`Hapus kategori "${parent.name}"?`}
             description="Seluruh sub-kategori, atribut filter, dan fitur paket di dalamnya akan ikut terhapus secara permanen."
-            onConfirm={() => deleteMutation.mutate({ id: parent.id })}
-            isPending={deleteMutation.isPending}
+            onConfirm={() => deleteCategory({ id: parent.id })}
+            isPending={isDeletingCategory}
           />
         </div>
       </div>

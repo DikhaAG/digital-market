@@ -1,4 +1,3 @@
-// src/app/admin/categories/components/sub-category-card.tsx
 "use client";
 
 import { Layers, CheckSquare, Filter, Briefcase } from "lucide-react";
@@ -8,8 +7,8 @@ import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { EditCategoryDialog } from "./dialogs";
 import { PackageFeaturesTab } from "./package-features-tab";
 import { FilterAttributesTab } from "./filter-attributes-tab";
-import { RelatedGigsTab } from "./related-gigs-tab"; // 👈 Import Komponen Baru
-import { useCategoryTreeMutation } from "../_hooks/use-category-tree-mutation";
+import { RelatedGigsTab } from "./related-gigs-tab";
+import { useCategoryActions } from "../_hooks/use-category-actions";
 import { type SubCategoryItem } from "../_schemas/category-admin.schema";
 
 interface SubCategoryCardProps {
@@ -17,10 +16,7 @@ interface SubCategoryCardProps {
 }
 
 export function SubCategoryCard({ sub }: SubCategoryCardProps) {
-  const { trpc, createOptions } = useCategoryTreeMutation();
-  const deleteMutation = trpc.admin.deleteCategory.useMutation(
-    createOptions({ successMessage: "Sub-kategori berhasil dihapus" }),
-  );
+  const { deleteCategory, isDeletingCategory } = useCategoryActions();
 
   return (
     <div className="p-3.5 sm:p-5 rounded-xl border border-border/70 bg-card/60 space-y-4 shadow-2xs transition-colors hover:border-border">
@@ -31,10 +27,10 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
             <Layers className="h-4 w-4" />
           </div>
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <span className="font-extrabold text-sm sm:text-base text-foreground truncate max-w-[180px] sm:max-w-xs">
+            <span className="font-extrabold text-sm sm:text-base text-foreground truncate max-w-45 sm:max-w-xs">
               {sub.name}
             </span>
-            <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px] hidden xs:inline">
+            <span className="text-xs text-muted-foreground font-mono truncate max-w-30 hidden xs:inline">
               ({sub.slug})
             </span>
             <Badge
@@ -55,8 +51,8 @@ export function SubCategoryCard({ sub }: SubCategoryCardProps) {
           <DeleteConfirmDialog
             title={`Hapus sub-kategori "${sub.name}"?`}
             description="Tindakan ini tidak dapat dibatalkan. Seluruh atribut filter dan fitur di dalamnya akan ikut terhapus."
-            onConfirm={() => deleteMutation.mutate({ id: sub.id })}
-            isPending={deleteMutation.isPending}
+            onConfirm={() => deleteCategory({ id: sub.id })}
+            isPending={isDeletingCategory}
           />
         </div>
       </div>
