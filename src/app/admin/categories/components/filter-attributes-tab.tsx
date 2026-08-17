@@ -1,16 +1,10 @@
 "use client";
 
-import { memo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { memo, useState } from "react";
 import { Loader2, Plus, Tag, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  attributeSchema,
-  attributeOptionSchema,
-  type AttributeInput,
-  type AttributeOptionInput,
   type AttributeItem,
   type AttributeOptionItem,
 } from "../_schemas/category-admin.schema";
@@ -25,31 +19,44 @@ export function FilterAttributesTab({
   categoryId,
   attributes,
 }: FilterAttributesTabProps) {
+  const [attributeName, setAttributeName] = useState("");
+  const [attributeError, setAttributeError] = useState<string | null>(null);
   const { handleCreateAttribute, isCreatingAttribute } = useCategoryActions();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AttributeInput>({
-    resolver: zodResolver(attributeSchema),
-    defaultValues: { name: "" },
-  });
+  const onAddAttribute = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = attributeName.trim();
 
-  const onAddAttribute = (data: AttributeInput) => {
+    if (!trimmedName) {
+      setAttributeError("Nama atribut minimal 2 karakter");
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      setAttributeError("Nama atribut minimal 2 karakter");
+      return;
+    }
+
+    setAttributeError(null);
+    setAttributeName("");
+
     if (!categoryId) return;
-    handleCreateAttribute(categoryId, data.name, () => reset());
+    handleCreateAttribute(categoryId, trimmedName);
   };
 
   return (
     <div className="pt-3 space-y-4">
       {/* Inline Form: Tambah Atribut */}
-      <form onSubmit={handleSubmit(onAddAttribute)} className="space-y-1">
+      <form onSubmit={onAddAttribute} className="space-y-1">
         <div className="flex items-center gap-2">
           <Input
             placeholder="Nama Atribut (Contoh: Programming Language)"
-            {...register("name")}
+            value={attributeName}
+            onChange={(e) => {
+              setAttributeName(e.target.value);
+              if (attributeError) setAttributeError(null);
+            }}
+            autoComplete="off"
             className="h-8 text-xs max-w-xs"
           />
           <Button
@@ -67,9 +74,9 @@ export function FilterAttributesTab({
             )}
           </Button>
         </div>
-        {errors.name && (
+        {attributeError && (
           <p className="text-[11px] text-destructive font-medium">
-            {errors.name.message}
+            {attributeError}
           </p>
         )}
       </form>
@@ -135,6 +142,9 @@ const AttributeOptionsList = memo(function AttributeOptionsList({
   attributeId: string;
   options: AttributeOptionItem[];
 }) {
+  const [optionLabel, setOptionLabel] = useState("");
+  const [optionError, setOptionError] = useState<string | null>(null);
+
   const {
     handleCreateAttributeOption,
     isCreatingAttributeOption,
@@ -143,25 +153,26 @@ const AttributeOptionsList = memo(function AttributeOptionsList({
     deletingOptionId,
   } = useCategoryActions();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AttributeOptionInput>({
-    resolver: zodResolver(attributeOptionSchema),
-    defaultValues: { label: "" },
-  });
+  const onAddOption = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedLabel = optionLabel.trim();
 
-  const onAddOption = (data: AttributeOptionInput) => {
-    if (!attributeId || !data.label) return;
-    handleCreateAttributeOption(attributeId, data.label, data.value, () =>
-      reset(),
-    );
+    if (!trimmedLabel) {
+      setOptionError("Label opsi tidak boleh kosong");
+      return;
+    }
+
+    setOptionError(null);
+    // Clearing sinkron seketika demi UX pengetikan cepat
+    setOptionLabel("");
+
+    if (!attributeId) return;
+    handleCreateAttributeOption(attributeId, trimmedLabel);
   };
 
   return (
     <div className="space-y-2">
+      {/* List Tags/Opsi */}
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => {
           const isDeletingThisOpt =
@@ -190,12 +201,17 @@ const AttributeOptionsList = memo(function AttributeOptionsList({
         })}
       </div>
 
-      {/* Inline Form: Tambah Opsi */}
-      <form onSubmit={handleSubmit(onAddOption)} className="space-y-1 pt-1">
+      {/* Controlled Micro-Form Input */}
+      <form onSubmit={onAddOption} className="space-y-1 pt-1">
         <div className="flex items-center gap-1.5">
           <Input
             placeholder="+ Opsi (misal: Python)"
-            {...register("label")}
+            value={optionLabel}
+            onChange={(e) => {
+              setOptionLabel(e.target.value);
+              if (optionError) setOptionError(null);
+            }}
+            autoComplete="off"
             className="h-7 text-[11px] px-2"
           />
           <Button
@@ -212,9 +228,9 @@ const AttributeOptionsList = memo(function AttributeOptionsList({
             )}
           </Button>
         </div>
-        {errors.label && (
+        {optionError && (
           <p className="text-[10px] text-destructive font-medium">
-            {errors.label.message}
+            {optionError}
           </p>
         )}
       </form>
