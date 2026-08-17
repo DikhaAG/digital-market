@@ -1,3 +1,4 @@
+// src/components/admin/AppSidebar.tsx
 "use client";
 
 import * as React from "react";
@@ -71,7 +72,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   };
 }
 
-/** Helper untuk generate inisial avatar secara otomatis */
 function getInitials(name?: string) {
   if (!name) return "AD";
   return name
@@ -87,7 +87,6 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
   const isMobile = useIsMobile();
   const router = useRouter();
 
-  // Sinkronisasi Sesi Client Better-Auth sebagai Fallback
   const { data: sessionData } = authClient.useSession();
   const currentUser = initialUser ?? {
     name: sessionData?.user?.name ?? "Pengelola",
@@ -98,7 +97,17 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
 
   const isSuperAdmin = currentUser.role === "super_admin";
 
-  // Handle Logout via Better-Auth Client API
+  // Fitur Keamanan: Isolasi Navigasi berdasarkan Role Pengguna
+  const filteredNavItems = React.useMemo(() => {
+    if (isSuperAdmin) {
+      return adminNavData;
+    }
+    // Seller (Admin) HANYA mendapatkan akses ke Dashboard dan Gigs miliknya
+    return adminNavData.filter(
+      (item) => item.url === "/admin" || item.url === "/admin/gigs",
+    );
+  }, [isSuperAdmin]);
+
   const handleSignOut = async () => {
     await authClient.signOut({
       fetchOptions: {
@@ -112,7 +121,6 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      {/* Header: Logo & Brand */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -134,12 +142,10 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Main Navigation Items */}
       <SidebarContent>
-        <NavMain items={adminNavData} />
+        <NavMain items={filteredNavItems} />
       </SidebarContent>
 
-      {/* Footer System: Dynamic User Profile & Actions */}
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -170,16 +176,13 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
                     <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
                   </SidebarMenuButton>
                 }
-              >
-                asChild
-              </DropdownMenuTrigger>
+              ></DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
                 side={isMobile ? "bottom" : "right"}
                 align="end"
                 sideOffset={4}
               >
-                {/* Header User Details */}
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
@@ -223,7 +226,6 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
 
                 <DropdownMenuSeparator />
 
-                {/* Main Action Group */}
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     onClick={() => router.push("/admin/profile")}
@@ -236,10 +238,9 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
 
                 <DropdownMenuSeparator />
 
-                {/* Sign Out Action */}
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  className="cursor-pointer text-destructive focus:bg-destructive/10"
                 >
                   <LogOutIcon className="mr-2 size-4" />
                   Keluar (Log out)
@@ -250,7 +251,6 @@ export function AppSidebar({ user: initialUser, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* Rail Interaktif untuk Menciutkan Sidebar */}
       <SidebarRail />
     </Sidebar>
   );
