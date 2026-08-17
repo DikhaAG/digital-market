@@ -1,3 +1,4 @@
+// src/app/admin/categories/components/dialogs/category-form-fields.tsx
 "use client";
 
 import {
@@ -15,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { slugify } from "../../_schemas/category-admin.schema";
 
 interface CategoryFormFieldsProps<TFieldValues extends FieldValues> {
@@ -37,7 +39,8 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
   const liveSlug = watchedName ? slugify(String(watchedName)) : "";
 
   return (
-    <>
+    <div className="space-y-4">
+      {/* Field: Nama Kategori */}
       <FormField
         control={form.control}
         name={"name" as Path<TFieldValues>}
@@ -64,6 +67,7 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
         )}
       />
 
+      {/* Field: Nama Icon Lucide */}
       <FormField
         control={form.control}
         name={"icon" as Path<TFieldValues>}
@@ -85,26 +89,28 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
         )}
       />
 
+      {/* Field: Gambar Banner CDN (Cloudinary Direct Uploader) */}
       <FormField
         control={form.control}
         name={"image" as Path<TFieldValues>}
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-              URL Banner / Image CDN (Opsional)
+              Banner Gambar CDN
             </FormLabel>
             <FormControl>
-              <Input
-                placeholder="https://cdn.example.com/banner.jpg"
+              <ImageUploader
+                value={field.value}
+                onChange={field.onChange}
+                folder="marketplace/categories"
                 disabled={isPending}
-                {...field}
-                value={field.value ?? ""}
+                aspectRatio="banner"
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 }
