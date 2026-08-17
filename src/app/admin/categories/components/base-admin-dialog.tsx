@@ -96,7 +96,7 @@ export function BaseAdminDialog<TFieldValues extends FieldValues>({
             onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
             className="flex flex-col flex-1 overflow-hidden pt-2"
           >
-            <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 scrollbar-gutter-stable">
               {children}
             </div>
 

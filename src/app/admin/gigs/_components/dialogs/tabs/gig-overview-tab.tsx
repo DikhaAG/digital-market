@@ -1,4 +1,3 @@
-// src/app/admin/gigs/_components/dialogs/tabs/gig-overview-tab.tsx
 "use client";
 
 import { useState } from "react";
@@ -59,7 +58,6 @@ export function GigOverviewTab({
   const form = useFormContext<GigFormValues>();
   const [autoSyncSlug, setAutoSyncSlug] = useState(!isEdit);
 
-  // Live Watcher untuk Character Counters
   const watchedTitle = useWatch({ control: form.control, name: "title" }) ?? "";
   const watchedAbout = useWatch({ control: form.control, name: "about" }) ?? "";
   const watchedSlug = useWatch({ control: form.control, name: "slug" }) ?? "";
@@ -127,7 +125,7 @@ export function GigOverviewTab({
           )}
         />
 
-        {/* Field: Slug dengan Live Domain Preview & Lock Toggle */}
+        {/* Field: Slug */}
         <FormField
           control={form.control}
           name="slug"
@@ -143,11 +141,6 @@ export function GigOverviewTab({
                   size="sm"
                   className="h-5 px-1.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
                   onClick={() => setAutoSyncSlug((prev) => !prev)}
-                  title={
-                    autoSyncSlug
-                      ? "Nonaktifkan sinkronisasi otomatis dari judul"
-                      : "Aktifkan sinkronisasi otomatis dari judul"
-                  }
                 >
                   {autoSyncSlug ? (
                     <>
@@ -179,7 +172,6 @@ export function GigOverviewTab({
                       size="icon"
                       className="h-10 w-10 sm:h-9 sm:w-9 shrink-0"
                       onClick={handleManualSyncSlug}
-                      title="Generate dari Judul Saat Ini"
                     >
                       <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
@@ -198,7 +190,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* SECTION 2: Relasi & Kepemilikan (Seller & Sub-Category) */}
+      {/* SECTION 2: Relasi & Kepemilikan */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3.5">
         <div className="flex items-center justify-between pb-1 border-b border-border/40">
           <div className="flex items-center gap-2">
@@ -229,7 +221,6 @@ export function GigOverviewTab({
                   </FormLabel>
 
                   {!isSuperAdmin ? (
-                    /* Read-Only Profile Chip untuk Non-SuperAdmin */
                     <div className="flex items-center justify-between h-10 sm:h-9 px-3 rounded-xl border border-border/80 bg-muted/40 text-xs text-foreground font-medium transition-colors">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -250,7 +241,6 @@ export function GigOverviewTab({
                       </div>
                     </div>
                   ) : (
-                    /* Rich Dropdown Selector untuk SuperAdmin */
                     <Select
                       onValueChange={field.onChange}
                       value={activeSellerId ?? undefined}
@@ -261,12 +251,16 @@ export function GigOverviewTab({
                           <SelectValue placeholder="Pilih Seller" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent
+                        sideOffset={4}
+                        alignItemWithTrigger={false}
+                        className="z-60 max-h-60 overflow-y-auto"
+                      >
                         {sellers?.map((s) => (
                           <SelectItem
                             key={s.id}
                             value={s.id}
-                            className="text-xs"
+                            className="text-xs cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
                               <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -302,9 +296,17 @@ export function GigOverviewTab({
                       <SelectValue placeholder="Pilih Sub-Kategori" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent
+                    sideOffset={4}
+                    alignItemWithTrigger={false}
+                    className="z-60 max-h-60 overflow-y-auto"
+                  >
                     {subcategories.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs">
+                      <SelectItem
+                        key={c.id}
+                        value={c.id}
+                        className="text-xs cursor-pointer"
+                      >
                         <div className="flex items-center gap-2">
                           <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
                           <span>{c.name}</span>
@@ -320,7 +322,7 @@ export function GigOverviewTab({
         </div>
       </div>
 
-      {/* SECTION 3: Visual & Sampul (Cover Image Uploader) */}
+      {/* SECTION 3: Visual & Sampul */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-border/40">
           <div className="flex items-center gap-2">
@@ -354,7 +356,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* SECTION 4: Deskripsi Detail (About Textarea) */}
+      {/* SECTION 4: Deskripsi Detail */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3">
         <FormField
           control={form.control}
@@ -377,8 +379,8 @@ export function GigOverviewTab({
               </div>
               <FormControl>
                 <Textarea
-                  placeholder="Jelaskan detail keahlian, alur pengerjaan, dan keunggulan jasa ini secara rinci..."
-                  className="min-h-[120px] text-xs resize-y transition-all focus-visible:ring-1"
+                  placeholder="Jelaskan detail keahlian, alur pengerjaan, dan keunggulan jasa ini..."
+                  className="min-h-30 text-xs resize-y transition-all focus-visible:ring-1"
                   disabled={isPending}
                   {...field}
                   value={field.value ?? ""}
