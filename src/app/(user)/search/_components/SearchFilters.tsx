@@ -1,12 +1,9 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-
 import { useSearchFilterParams } from "./hooks/useSearchFilterParams";
 import { CategoryFilterPopover } from "./CategoryFilterPopover";
 import { BudgetFilterPopover } from "./BudgetFilterPopover";
+import { ServiceOptionsFilterPopover } from "./ServiceOptionsFilterPopover";
 import { ActiveFilterChips } from "./ActiveFilterChips";
 import { SortBySelect } from "./SortBySelect";
 
@@ -21,6 +18,7 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
     maxPrice,
     sortBy,
     proServices,
+    selectedOptionIds,
     isPending,
     updateFilters,
     removeFilterChip,
@@ -28,10 +26,10 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
 
   return (
     <div className="space-y-4">
-      {/* BARIS 1: Dropdown Filters & Pro Toggle */}
+      {/* BARIS 1: Dropdown Filters Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Popover Filter Kategori Berdasarkan Slug */}
+          {/* Popover Filter Kategori */}
           <CategoryFilterPopover
             selectedCategorySlug={categorySlug}
             isPending={isPending}
@@ -48,14 +46,17 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
             }
           />
 
-          {/* Dummy Dropdown Buttons untuk UI Parity */}
-          <Button
-            variant="outline"
-            className="rounded-xl border-border font-semibold text-sm h-10 px-4 hover:border-foreground transition-all gap-2"
-          >
-            Service options
-            <ChevronDown className="h-4 w-4 opacity-60" />
-          </Button>
+          {/* Popover Filter Opsi Layanan Dinamis */}
+          <ServiceOptionsFilterPopover
+            categorySlug={categorySlug}
+            selectedOptionIds={selectedOptionIds}
+            isPending={isPending}
+            onApply={(optionIds) =>
+              updateFilters({
+                options: optionIds.length > 0 ? optionIds.join(",") : null,
+              })
+            }
+          />
         </div>
       </div>
 
@@ -65,6 +66,7 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
         minPrice={minPrice}
         maxPrice={maxPrice}
         proServices={proServices}
+        selectedOptionIds={selectedOptionIds}
         onRemove={removeFilterChip}
       />
 

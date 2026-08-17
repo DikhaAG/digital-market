@@ -9,7 +9,8 @@ interface ActiveFilterChipsProps {
   minPrice?: string;
   maxPrice?: string;
   proServices?: boolean;
-  onRemove: (key: string) => void;
+  selectedOptionIds?: string[];
+  onRemove: (key: string, valueToRemove?: string) => void;
 }
 
 export function ActiveFilterChips({
@@ -17,6 +18,7 @@ export function ActiveFilterChips({
   minPrice,
   maxPrice,
   proServices,
+  selectedOptionIds = [],
   onRemove,
 }: ActiveFilterChipsProps) {
   const hasBudgetFilter = Boolean(minPrice || maxPrice);
@@ -24,6 +26,11 @@ export function ActiveFilterChips({
   const { data: categories } = trpc.category.getAllWithSubcategories.useQuery(
     undefined,
     { staleTime: 1000 * 60 * 5 },
+  );
+
+  const { data: attributes } = trpc.gig.getCategoryAttributes.useQuery(
+    { categorySlug: categorySlug ?? "" },
+    { enabled: Boolean(categorySlug && selectedOptionIds.length > 0) },
   );
 
   const categoryName = useMemo(() => {
@@ -38,7 +45,26 @@ export function ActiveFilterChips({
     return categorySlug;
   }, [categorySlug, categories]);
 
-  if (!hasBudgetFilter && !proServices && !categorySlug) return null;
+  // Resolusi nama label untuk chip opsi atribut
+  const optionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!attributes) return map;
+    for (const attr of attributes) {
+      for (const opt of attr.options) {
+        map.set(opt.id, opt.label);
+      }
+    }
+    return map;
+  }, [attributes]);
+
+  if (
+    !hasBudgetFilter &&
+    !proServices &&
+    !categorySlug &&
+    selectedOptionIds.length === 0
+  ) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -87,6 +113,26 @@ export function ActiveFilterChips({
           </button>
         </span>
       )}
+
+      {/* Attribute Options Active Chips */}
+      {selectedOptionIds.map((optId) => {
+        const label = optionMap.get(optId) ?? "Option";
+        return (
+          <span
+            key={optId}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-secondary/80 text-secondary-foreground border border-border/60 hover:bg-secondary transition-colors"
+          >
+            {label}
+            <button
+              type="button"
+              onClick={() => onRemove("option", optId)}
+              className="p-0.5 rounded-full hover:bg-background/80 cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        );
+      })}
     </div>
   );
 }

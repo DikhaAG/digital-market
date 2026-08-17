@@ -15,6 +15,12 @@ export function useSearchFilterParams() {
   const proServices = searchParams.get("pro") === "true";
   const categorySlug = searchParams.get("categorySlug") ?? "";
 
+  // Ambil array of attribute option IDs dari URL (misal: ?options=opt1,opt2)
+  const rawOptions = searchParams.get("options") ?? "";
+  const selectedOptionIds = rawOptions
+    ? rawOptions.split(",").filter(Boolean)
+    : [];
+
   const createQueryString = useCallback(
     (paramsToUpdate: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -40,13 +46,21 @@ export function useSearchFilterParams() {
     });
   };
 
-  const removeFilterChip = (key: string) => {
+  const removeFilterChip = (key: string, valueToRemove?: string) => {
     if (key === "budget") {
       updateFilters({ minPrice: null, maxPrice: null });
     } else if (key === "pro") {
       updateFilters({ pro: null });
     } else if (key === "category") {
-      updateFilters({ categorySlug: null }); // 👈 Hapus filter slug
+      // Hapus kategori sekaligus opsi atribut yang terikat dengannya
+      updateFilters({ categorySlug: null, options: null });
+    } else if (key === "option" && valueToRemove) {
+      const nextOptions = selectedOptionIds.filter(
+        (id) => id !== valueToRemove,
+      );
+      updateFilters({
+        options: nextOptions.length > 0 ? nextOptions.join(",") : null,
+      });
     } else {
       updateFilters({ [key]: null });
     }
@@ -58,6 +72,7 @@ export function useSearchFilterParams() {
     maxPrice,
     sortBy,
     proServices,
+    selectedOptionIds,
     isPending,
     updateFilters,
     removeFilterChip,

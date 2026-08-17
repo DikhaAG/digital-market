@@ -14,7 +14,13 @@ import {
 } from "drizzle-orm";
 import { publicProcedure, router } from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
-import { gigs, categories, user, gigPackages } from "@/lib/db/schema";
+import {
+  gigs,
+  categories,
+  user,
+  gigPackages,
+  gigAttributeOptions,
+} from "@/lib/db/schema";
 
 // ============================================================================
 // SCHEMAS & TYPES
@@ -66,6 +72,8 @@ export const searchGigsInputSchema = z.object({
     .default("relevance")
     .describe("Mode pengurutan data"),
 
+  attributeOptionIds: z.array(z.string()).optional(),
+
   /** Nomor halaman aktif (1-based index) */
   page: z
     .number()
@@ -95,6 +103,30 @@ export type SearchGigsInput = z.infer<typeof searchGigsInputSchema>;
  * Router tRPC untuk mengelola entitas Gig/Layanan Freelance.
  */
 export const gigRouter = router({
+  /**
+   * Mengambil atribut & opsi filter berdasarkan slug kategori
+   */
+  getCategoryAttributes: publicProcedure
+    .input(z.object({ categorySlug: z.string().optional() }))
+    .query(async ({ input }) => {
+      if (!input.categorySlug) return [];
+
+      const category = await db.query.categories.findFirst({
+        where: {
+          slug: input.categorySlug,
+        },
+        with: {
+          attributes: {
+            with: {
+              options: true,
+            },
+          },
+        },
+      });
+
+      return category?.attributes ?? [];
+    }),
+
   /**
    * Mengambil detail Gig berdasarkan slug beserta relasi Seller, Category, dan Packages
    */
@@ -156,8 +188,16 @@ export const gigRouter = router({
   search: publicProcedure
     .input(searchGigsInputSchema)
     .query(async ({ input }) => {
-      const { q, categorySlug, minPrice, maxPrice, sortBy, page, limit } =
-        input;
+      const {
+        q,
+        categorySlug,
+        minPrice,
+        maxPrice,
+        sortBy,
+        attributeOptionIds,
+        page,
+        limit,
+      } = input;
       const offset = (page - 1) * limit;
 
       // ----------------------------------------------------------------------
@@ -188,6 +228,17 @@ export const gigRouter = router({
               AND parent_cat.slug = ${categorySlug}
             )`,
           ),
+        );
+      }
+
+      // Filter berdasarkan opsi atribut (Many-to-Many via gigAttributeOptions)
+      if (attributeOptionIds && attributeOptionIds.length > 0) {
+        whereConditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM ${gigAttributeOptions} AS gao 
+            WHERE gao.gig_id = ${gigs.id} 
+            AND gao.attribute_option_id IN ${attributeOptionIds}
+          )`,
         );
       }
 
