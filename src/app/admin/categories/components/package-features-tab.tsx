@@ -38,7 +38,7 @@ export function PackageFeaturesTab({
     formState: { errors },
   } = useForm<PackageFeatureInput>({
     resolver: zodResolver(packageFeatureSchema),
-    defaultValues: { type: "boolean" },
+    defaultValues: { name: "", type: "boolean" },
   });
 
   const addMutation = trpc.admin.addPackageFeature.useMutation({
@@ -49,6 +49,18 @@ export function PackageFeaturesTab({
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const onSubmit = (data: PackageFeatureInput) => {
+    if (!categoryId) {
+      toast.error("Category ID tidak valid");
+      return;
+    }
+    addMutation.mutate({
+      categoryId,
+      name: data.name,
+      type: data.type,
+    });
+  };
 
   const deleteMutation = trpc.admin.deletePackageFeature.useMutation({
     onSuccess: () => {
@@ -61,12 +73,7 @@ export function PackageFeaturesTab({
   return (
     <div className="pt-3 space-y-3">
       {/* Inline Form */}
-      <form
-        onSubmit={handleSubmit((data) =>
-          addMutation.mutate({ categoryId, name: data.name, type: data.type }),
-        )}
-        className="space-y-1"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <Input
             placeholder="Nama fitur (Contoh: Vector file, Revisions)"
@@ -77,7 +84,10 @@ export function PackageFeaturesTab({
             control={control}
             name="type"
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value ?? "boolean"}
+              >
                 <SelectTrigger className="h-8 text-xs w-[160px]">
                   <SelectValue placeholder="Pilih tipe" />
                 </SelectTrigger>
@@ -93,7 +103,7 @@ export function PackageFeaturesTab({
             type="submit"
             size="sm"
             className="h-8 text-xs font-semibold"
-            disabled={addMutation.isPending}
+            disabled={addMutation.isPending || !categoryId}
           >
             {addMutation.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

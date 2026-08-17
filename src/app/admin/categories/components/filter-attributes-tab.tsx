@@ -51,9 +51,11 @@ export function FilterAttributesTab({
     formState: { errors },
   } = useForm<AttributeInput>({
     resolver: zodResolver(attributeSchema),
+    defaultValues: { name: "" },
   });
 
   const onAddAttribute = (data: AttributeInput) => {
+    if (!categoryId) return;
     createAttribute({
       categoryId,
       name: data.name,
@@ -164,9 +166,11 @@ function AttributeOptionsList({
     formState: { errors },
   } = useForm<AttributeOptionFormInput>({
     resolver: zodResolver(attributeOptionFormSchema),
+    defaultValues: { label: "" },
   });
 
   const onAddOption = (data: AttributeOptionFormInput) => {
+    if (!attributeId || !data.label) return;
     createAttributeOption({
       attributeId,
       label: data.label,
