@@ -269,7 +269,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               value="overview"
               title="1. Overview"
               aria-label="1. Overview"
-              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
+              className="text-xs font-bold py-2.5 sm:py-2 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
               <Info className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
               <span className="hidden sm:inline truncate">1. Overview</span>
@@ -284,13 +284,12 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               disabled={!isCategoryValid}
               title={`2. Atribut (${attributeOptionIds.length})`}
               aria-label={`2. Atribut (${attributeOptionIds.length})`}
-              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
+              className="text-xs font-bold py-2.5 sm:py-2 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
               <SlidersHorizontal className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
               <span className="hidden sm:inline truncate">
                 2. Atribut ({attributeOptionIds.length})
               </span>
-              {/* Micro-badge hitungan atribut khusus tampilan ikon mobile */}
               {attributeOptionIds.length > 0 && (
                 <span className="sm:hidden font-mono text-[9px] font-black bg-primary/15 text-primary px-1 rounded-md">
                   {attributeOptionIds.length}
@@ -304,7 +303,7 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               disabled={!isCategoryValid}
               title="3. Paket Harga"
               aria-label="3. Paket Harga"
-              className="text-xs font-bold py-2 h-10 sm:h-9 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
+              className="text-xs font-bold py-2.5 sm:py-2 data-[state=active]:bg-background flex items-center justify-center gap-1.5 relative rounded-lg transition-all"
             >
               <Package className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 text-primary" />
               <span className="hidden sm:inline truncate">3. Paket Harga</span>
