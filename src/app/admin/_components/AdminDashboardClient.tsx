@@ -132,18 +132,6 @@ export function AdminDashboardClient({
               </>
             )}
           </span>
-          {!isSuperAdmin && (
-            <Button
-              nativeButton={false}
-              render={
-                <Link href="/admin/gigs/new">
-                  <Plus className="h-3.5 w-3.5" /> Buat Gig
-                </Link>
-              }
-              size="sm"
-              className="h-8 gap-1 text-xs"
-            ></Button>
-          )}
           <Button
             variant="outline"
             size="sm"
