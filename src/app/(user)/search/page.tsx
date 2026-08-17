@@ -12,6 +12,7 @@ interface SearchPageProps {
     minPrice?: string;
     maxPrice?: string;
     sortBy?: "relevance" | "newest" | "price_asc" | "price_desc";
+    options?: string;
     page?: string;
   }>;
 }
@@ -27,7 +28,7 @@ export async function generateMetadata({
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q, categorySlug, minPrice, maxPrice, sortBy, page } =
+  const { q, categorySlug, minPrice, maxPrice, sortBy, options, page } =
     await searchParams;
   const currentPage = Number(page) || 1;
 
@@ -35,7 +36,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     categorySlug && categorySlug.trim() !== ""
       ? categorySlug.trim()
       : undefined;
-  // Best Approach: Query data via tRPC Server Caller
+
+  // Formatting opsi atribut dari URL (comma separated string -> array string)
+  const attributeOptionIds = options
+    ? options.split(",").filter(Boolean)
+    : undefined;
+
   const trpc = await trpcServer();
   const { items, pagination } = await trpc.gig.search({
     q,
@@ -43,19 +49,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     sortBy,
+    attributeOptionIds, // 👈 Teruskan parameter ke tRPC Server
     page: currentPage,
     limit: 12,
   });
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Title & Header */}
       <SearchHeader query={q} />
-
-      {/* Fiverr-Style Filter Toolbar & Sorting */}
       <SearchFilters totalResults={pagination.total} />
 
-      {/* Grid Item Hasil Pencarian */}
       {items.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
           {items.map((item) => (

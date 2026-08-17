@@ -31,7 +31,6 @@ export function ServiceOptionsFilterPopover({
   const [localSelectedIds, setLocalSelectedIds] =
     useState<string[]>(selectedOptionIds);
 
-  // Sinkronisasi local state saat popover dibuka tanpa memicu useEffect cascading renders
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
       setLocalSelectedIds(selectedOptionIds);
@@ -39,7 +38,6 @@ export function ServiceOptionsFilterPopover({
     setOpen(nextOpen);
   };
 
-  // Query atribut dinamis berdasarkan categorySlug
   const { data: attributes, isLoading } =
     trpc.gig.getCategoryAttributes.useQuery(
       { categorySlug },
@@ -75,7 +73,7 @@ export function ServiceOptionsFilterPopover({
           <Button
             variant="outline"
             disabled={!isCategorySelected}
-            className={`rounded-xl border-border font-semibold text-sm h-10 px-4 transition-all gap-2 ${
+            className={`rounded-xl border-border font-semibold text-sm h-10 px-4 transition-all gap-2 cursor-pointer ${
               activeCount > 0
                 ? "border-primary bg-primary/5 text-primary hover:bg-primary/10"
                 : "hover:border-foreground"
@@ -104,7 +102,6 @@ export function ServiceOptionsFilterPopover({
         align="start"
         className="w-[90vw] sm:w-105 p-0 rounded-2xl shadow-xl border-border/80 overflow-hidden"
       >
-        {/* Header Popover */}
         <div className="p-4 border-b border-border/60 bg-muted/30 flex items-center justify-between">
           <div>
             <h4 className="font-bold text-sm text-foreground">
@@ -126,7 +123,6 @@ export function ServiceOptionsFilterPopover({
           )}
         </div>
 
-        {/* Content Body */}
         <div className="p-4 max-h-90 overflow-y-auto space-y-5 scrollbar-thin">
           {!isCategorySelected ? (
             <div className="text-center py-6 space-y-1">
@@ -160,7 +156,7 @@ export function ServiceOptionsFilterPopover({
                   {attr.options.map((opt) => {
                     const isChecked = localSelectedIds.includes(opt.id);
                     return (
-                      <label
+                      <div
                         key={opt.id}
                         onClick={() => toggleOption(opt.id)}
                         className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
@@ -170,12 +166,18 @@ export function ServiceOptionsFilterPopover({
                         }`}
                       >
                         <Checkbox
+                          id={`opt-${opt.id}`}
                           checked={isChecked}
                           onCheckedChange={() => toggleOption(opt.id)}
-                          className="h-4 w-4 rounded-md"
+                          className="h-4 w-4 rounded-md pointer-events-none"
                         />
-                        <span className="truncate">{opt.label}</span>
-                      </label>
+                        <label
+                          htmlFor={`opt-${opt.id}`}
+                          className="truncate cursor-pointer select-none"
+                        >
+                          {opt.label}
+                        </label>
+                      </div>
                     );
                   })}
                 </div>
@@ -188,7 +190,6 @@ export function ServiceOptionsFilterPopover({
           )}
         </div>
 
-        {/* Footer Popover Actions */}
         <div className="p-3 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-2">
           <Button
             variant="ghost"
