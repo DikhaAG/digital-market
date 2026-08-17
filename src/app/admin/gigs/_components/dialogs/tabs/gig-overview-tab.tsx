@@ -190,7 +190,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* SECTION 2: Relasi & Kepemilikan */}
+      {/* SECTION 2: Relasi & Kepemilikan (Dengan Resolved Label Rendering) */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3.5">
         <div className="flex items-center justify-between pb-1 border-b border-border/40">
           <div className="flex items-center gap-2">
@@ -210,9 +210,12 @@ export function GigOverviewTab({
               const activeSellerId = !isSuperAdmin
                 ? (currentUserId ?? field.value)
                 : field.value;
-              const currentSellerName =
-                sellers?.find((s) => s.id === activeSellerId)?.name ??
-                "Akun Anda";
+
+              // Explicit Lookup untuk Seller
+              const selectedSeller = sellers?.find(
+                (s) => s.id === activeSellerId,
+              );
+              const currentSellerName = selectedSeller?.name ?? "Akun Anda";
 
               return (
                 <FormItem className="space-y-1.5">
@@ -248,7 +251,20 @@ export function GigOverviewTab({
                     >
                       <FormControl>
                         <SelectTrigger className="h-10 sm:h-9 text-xs">
-                          <SelectValue placeholder="Pilih Seller" />
+                          <SelectValue placeholder="Pilih Seller">
+                            {selectedSeller ? (
+                              <div className="flex items-center gap-2 truncate">
+                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="truncate">
+                                  {selectedSeller.name}
+                                </span>
+                              </div>
+                            ) : activeSellerId ? (
+                              <span className="text-muted-foreground animate-pulse">
+                                Memuat nama seller...
+                              </span>
+                            ) : null}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent
@@ -281,43 +297,63 @@ export function GigOverviewTab({
           <FormField
             control={form.control}
             name="categoryId"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                  Sub-Kategori
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value ?? undefined}
-                  disabled={isPending}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-10 sm:h-9 text-xs">
-                      <SelectValue placeholder="Pilih Sub-Kategori" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent
-                    sideOffset={4}
-                    alignItemWithTrigger={false}
-                    className="z-60 max-h-60 overflow-y-auto"
+            render={({ field }) => {
+              // Explicit Lookup untuk Sub-Kategori
+              const selectedSubcategory = subcategories.find(
+                (c) => c.id === field.value,
+              );
+
+              return (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                    Sub-Kategori
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? undefined}
+                    disabled={isPending}
                   >
-                    {subcategories.map((c) => (
-                      <SelectItem
-                        key={c.id}
-                        value={c.id}
-                        className="text-xs cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                          <span>{c.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+                    <FormControl>
+                      <SelectTrigger className="h-10 sm:h-9 text-xs">
+                        <SelectValue placeholder="Pilih Sub-Kategori">
+                          {selectedSubcategory ? (
+                            <div className="flex items-center gap-2 truncate">
+                              <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                              <span className="truncate">
+                                {selectedSubcategory.name}
+                              </span>
+                            </div>
+                          ) : field.value ? (
+                            <span className="text-muted-foreground animate-pulse">
+                              Memuat kategori...
+                            </span>
+                          ) : null}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent
+                      sideOffset={4}
+                      alignItemWithTrigger={false}
+                      className="z-60 max-h-60 overflow-y-auto"
+                    >
+                      {subcategories.map((c) => (
+                        <SelectItem
+                          key={c.id}
+                          value={c.id}
+                          className="text-xs cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                            <span>{c.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
       </div>
