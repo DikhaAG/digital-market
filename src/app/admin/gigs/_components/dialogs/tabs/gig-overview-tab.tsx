@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import {
   Link2,
@@ -45,6 +46,8 @@ interface GigOverviewTabProps {
   isPending: boolean;
   isSuperAdmin: boolean;
   currentUserId?: string;
+  isLoadingSellers?: boolean;
+  isLoadingCategories?: boolean;
 }
 
 export function GigOverviewTab({
@@ -54,6 +57,8 @@ export function GigOverviewTab({
   isPending,
   isSuperAdmin,
   currentUserId,
+  isLoadingSellers,
+  isLoadingCategories,
 }: GigOverviewTabProps) {
   const form = useFormContext<GigFormValues>();
   const [autoSyncSlug, setAutoSyncSlug] = useState(!isEdit);
@@ -68,7 +73,6 @@ export function GigOverviewTab({
   ) => {
     const value = e.target.value;
     fieldOnChange(value);
-
     if (autoSyncSlug) {
       form.setValue("slug", slugify(value), { shouldValidate: true });
     }
@@ -80,7 +84,7 @@ export function GigOverviewTab({
 
   return (
     <div className="space-y-4 pt-3">
-      {/* SECTION 1: Informasi Utama (Title & Slug) */}
+      {/* SECTION 1: Informasi Utama */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3.5">
         <div className="flex items-center gap-2 pb-1 border-b border-border/40">
           <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -89,7 +93,6 @@ export function GigOverviewTab({
           </span>
         </div>
 
-        {/* Field: Title */}
         <FormField
           control={form.control}
           name="title"
@@ -125,7 +128,6 @@ export function GigOverviewTab({
           )}
         />
 
-        {/* Field: Slug */}
         <FormField
           control={form.control}
           name="slug"
@@ -190,7 +192,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* SECTION 2: Relasi & Kepemilikan (Dengan Resolved Label Rendering) */}
+      {/* SECTION 2: Kepemilikan & Kategori */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3.5">
         <div className="flex items-center justify-between pb-1 border-b border-border/40">
           <div className="flex items-center gap-2">
@@ -211,7 +213,6 @@ export function GigOverviewTab({
                 ? (currentUserId ?? field.value)
                 : field.value;
 
-              // Explicit Lookup untuk Seller
               const selectedSeller = sellers?.find(
                 (s) => s.id === activeSellerId,
               );
@@ -223,7 +224,9 @@ export function GigOverviewTab({
                     <span>Seller / Freelancer</span>
                   </FormLabel>
 
-                  {!isSuperAdmin ? (
+                  {isLoadingSellers ? (
+                    <Skeleton className="h-10 sm:h-9 w-full rounded-xl" />
+                  ) : !isSuperAdmin ? (
                     <div className="flex items-center justify-between h-10 sm:h-9 px-3 rounded-xl border border-border/80 bg-muted/40 text-xs text-foreground font-medium transition-colors">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -259,10 +262,6 @@ export function GigOverviewTab({
                                   {selectedSeller.name}
                                 </span>
                               </div>
-                            ) : activeSellerId ? (
-                              <span className="text-muted-foreground animate-pulse">
-                                Memuat nama seller...
-                              </span>
                             ) : null}
                           </SelectValue>
                         </SelectTrigger>
@@ -298,7 +297,6 @@ export function GigOverviewTab({
             control={form.control}
             name="categoryId"
             render={({ field }) => {
-              // Explicit Lookup untuk Sub-Kategori
               const selectedSubcategory = subcategories.find(
                 (c) => c.id === field.value,
               );
@@ -308,48 +306,49 @@ export function GigOverviewTab({
                   <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
                     Sub-Kategori
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value ?? undefined}
-                    disabled={isPending}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-10 sm:h-9 text-xs">
-                        <SelectValue placeholder="Pilih Sub-Kategori">
-                          {selectedSubcategory ? (
-                            <div className="flex items-center gap-2 truncate">
-                              <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                              <span className="truncate">
-                                {selectedSubcategory.name}
-                              </span>
-                            </div>
-                          ) : field.value ? (
-                            <span className="text-muted-foreground animate-pulse">
-                              Memuat kategori...
-                            </span>
-                          ) : null}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent
-                      sideOffset={4}
-                      alignItemWithTrigger={false}
-                      className="z-60 max-h-60 overflow-y-auto"
+
+                  {isLoadingCategories ? (
+                    <Skeleton className="h-10 sm:h-9 w-full rounded-xl" />
+                  ) : (
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? undefined}
+                      disabled={isPending}
                     >
-                      {subcategories.map((c) => (
-                        <SelectItem
-                          key={c.id}
-                          value={c.id}
-                          className="text-xs cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                            <span>{c.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <FormControl>
+                        <SelectTrigger className="h-10 sm:h-9 text-xs">
+                          <SelectValue placeholder="Pilih Sub-Kategori">
+                            {selectedSubcategory ? (
+                              <div className="flex items-center gap-2 truncate">
+                                <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                                <span className="truncate">
+                                  {selectedSubcategory.name}
+                                </span>
+                              </div>
+                            ) : null}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent
+                        sideOffset={4}
+                        alignItemWithTrigger={false}
+                        className="z-60 max-h-60 overflow-y-auto"
+                      >
+                        {subcategories.map((c) => (
+                          <SelectItem
+                            key={c.id}
+                            value={c.id}
+                            className="text-xs cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Layers className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                              <span>{c.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               );
@@ -371,7 +370,6 @@ export function GigOverviewTab({
             Rasio 16:9 Recommended
           </span>
         </div>
-
         <FormField
           control={form.control}
           name="coverImage"

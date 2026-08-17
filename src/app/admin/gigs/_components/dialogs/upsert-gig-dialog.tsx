@@ -130,13 +130,12 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     (currentUser as { role?: string } | undefined)?.role === "super_admin";
 
   const { trpc: trpcClient, createOptions } = useGigMutation();
-  const { data: sellers } = trpc.admin.getAllSellers.useQuery(undefined, {
-    enabled: open,
-  });
-  const { data: categoryTree } = trpc.admin.getCategoryTree.useQuery(
-    undefined,
-    { enabled: open },
-  );
+  const { data: sellers, isLoading: isLoadingSellers } =
+    trpc.admin.getAllSellers.useQuery(undefined, {
+      enabled: open,
+    });
+  const { data: categoryTree, isLoading: isLoadingCategories } =
+    trpc.admin.getCategoryTree.useQuery(undefined, { enabled: open });
 
   const subcategories =
     categoryTree?.flatMap((parent) => parent.subcategories) ?? [];
@@ -167,10 +166,11 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     selectedCategoryId && selectedCategoryId.trim().length > 0,
   );
 
-  const { data: catMeta } = trpc.admin.getCategoryGigMeta.useQuery(
-    { categoryId: selectedCategoryId! },
-    { enabled: open && isCategoryValid },
-  );
+  const { data: catMeta, isLoading: isLoadingMeta } =
+    trpc.admin.getCategoryGigMeta.useQuery(
+      { categoryId: selectedCategoryId! },
+      { enabled: open && isCategoryValid },
+    );
 
   const mutation = trpcClient.admin.upsertGig.useMutation(
     createOptions({
@@ -324,19 +324,28 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               isPending={mutation.isPending}
               isSuperAdmin={isSuperAdmin}
               currentUserId={currentUser?.id}
+              isLoadingSellers={isLoadingSellers}
+              isLoadingCategories={isLoadingCategories}
             />
           </TabsContent>
           <TabsContent
             value="attributes"
             className="mt-0 focus-visible:outline-none"
           >
-            <GigAttributesTab attributes={catMeta?.attributes} />
+            <GigAttributesTab
+              attributes={catMeta?.attributes}
+              isLoading={isLoadingMeta}
+            />
           </TabsContent>
+
           <TabsContent
             value="packages"
             className="mt-0 focus-visible:outline-none"
           >
-            <GigPackagesTab packageFeatures={catMeta?.packageFeatures} />
+            <GigPackagesTab
+              packageFeatures={catMeta?.packageFeatures}
+              isLoadingMeta={isLoadingMeta}
+            />
           </TabsContent>
         </Tabs>
       </FormProvider>

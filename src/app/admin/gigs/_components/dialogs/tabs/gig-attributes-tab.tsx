@@ -1,8 +1,8 @@
-// src/app/admin/gigs/_components/dialogs/tabs/gig-attributes-tab.tsx
 "use client";
 
 import { Check } from "lucide-react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { Skeleton } from "@/components/ui/skeleton";
 import { type GigFormValues } from "../../../_schemas/gig-admin-schema";
 
 interface GigAttributesTabProps {
@@ -11,12 +11,36 @@ interface GigAttributesTabProps {
     name: string;
     options: Array<{ id: string; label: string }>;
   }>;
+  isLoading?: boolean;
 }
 
-export function GigAttributesTab({ attributes }: GigAttributesTabProps) {
+export function GigAttributesTab({
+  attributes,
+  isLoading,
+}: GigAttributesTabProps) {
   const { control, setValue } = useFormContext<GigFormValues>();
   const attributeOptionIds =
     useWatch({ control, name: "attributeOptionIds" }) ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 max-h-[60vh] sm:max-h-95 overflow-y-auto pr-1 pt-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="p-3 rounded-xl border border-border/80 bg-card/60 space-y-2.5"
+          >
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-7 w-20 rounded-lg" />
+              <Skeleton className="h-7 w-24 rounded-lg" />
+              <Skeleton className="h-7 w-16 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (!attributes || attributes.length === 0) {
     return (
@@ -29,7 +53,7 @@ export function GigAttributesTab({ attributes }: GigAttributesTabProps) {
   }
 
   return (
-    <div className="space-y-3 max-h-[60vh] sm:max-h-[380px] overflow-y-auto pr-1 pt-3">
+    <div className="space-y-3 max-h-[60vh] sm:max-h-95 overflow-y-auto pr-1 pt-3">
       {attributes.map((attr) => (
         <div
           key={attr.id}

@@ -1,10 +1,10 @@
-// src/app/admin/gigs/_components/dialogs/tabs/gig-packages-tab.tsx
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FormControl,
   FormField,
@@ -19,29 +19,31 @@ interface GigPackagesTabProps {
     name: string;
     type: "boolean" | "text" | "number";
   }>;
+  isLoadingMeta?: boolean;
 }
 
 const PACKAGE_TYPES = ["basic", "standard", "premium"] as const;
 
-export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
+export function GigPackagesTab({
+  packageFeatures,
+  isLoadingMeta,
+}: GigPackagesTabProps) {
   const form = useFormContext<GigFormValues>();
   const packagesWatch =
     useWatch({ control: form.control, name: "packages" }) ?? [];
 
   return (
-    <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1 pt-3">
+    <div className="space-y-4 max-h-90 overflow-y-auto pr-1 pt-3">
       {PACKAGE_TYPES.map((pType, pIdx) => (
         <div
           key={pType}
           className="p-3.5 rounded-xl border border-border bg-card space-y-3 shadow-2xs"
         >
-          {/* Sinkronisasi Jenis Paket ke Form State */}
           <input
             type="hidden"
             {...form.register(`packages.${pIdx}.packageType`)}
             value={pType}
           />
-
           <div className="flex items-center justify-between">
             <Badge
               variant={pType === "basic" ? "default" : "outline"}
@@ -71,7 +73,6 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={`packages.${pIdx}.price`}
@@ -132,7 +133,6 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={`packages.${pIdx}.revisions`}
@@ -163,13 +163,18 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
             />
           </div>
 
-          {/* Matriks Fitur Paket */}
-          {packageFeatures && packageFeatures.length > 0 && (
-            <div className="border-t border-border/60 pt-3 space-y-2">
-              <span className="text-[11px] font-extrabold text-foreground block">
-                Fitur Matriks:
-              </span>
+          {/* Matriks Fitur Paket & Skeleton State */}
+          <div className="border-t border-border/60 pt-3 space-y-2">
+            <span className="text-[11px] font-extrabold text-foreground block">
+              Fitur Matriks:
+            </span>
 
+            {isLoadingMeta ? (
+              <div className="space-y-2">
+                <Skeleton className="h-9 w-full rounded-lg" />
+                <Skeleton className="h-9 w-full rounded-lg" />
+              </div>
+            ) : packageFeatures && packageFeatures.length > 0 ? (
               <div className="space-y-2">
                 {packageFeatures.map((feat) => {
                   const currentFV = packagesWatch[pIdx]?.featureValues ?? [];
@@ -215,7 +220,6 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
                           Tipe: {feat.type}
                         </span>
                       </div>
-
                       <div className="flex items-center gap-2 shrink-0">
                         {(feat.type === "text" || feat.type === "number") && (
                           <Input
@@ -234,7 +238,6 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
                             className="h-7 w-20 text-[11px]"
                           />
                         )}
-
                         <Switch
                           checked={Boolean(isIncluded)}
                           onCheckedChange={(checked) =>
@@ -246,8 +249,12 @@ export function GigPackagesTab({ packageFeatures }: GigPackagesTabProps) {
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <span className="text-xs text-muted-foreground italic block">
+                Tidak ada fitur paket untuk kategori ini.
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>
