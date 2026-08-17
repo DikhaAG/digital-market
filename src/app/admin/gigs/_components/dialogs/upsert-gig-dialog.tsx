@@ -1,7 +1,7 @@
 // src/app/admin/gigs/_components/dialogs/upsert-gig-dialog.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useForm,
   useWatch,
@@ -17,13 +17,12 @@ import {
   Package,
   Info,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BaseAdminDialog } from "@/app/admin/categories/components/base-admin-dialog";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "sonner";
-
+import { authClient } from "@/lib/auth-client";
 import { useGigMutation } from "../../_hooks/use-gig-mutation";
 import {
   gigFormSchema,
@@ -31,14 +30,9 @@ import {
   type GigFormValues,
   type GigAuditItem,
 } from "../../_schemas/gig-admin-schema";
-
 import { GigOverviewTab } from "./tabs/gig-overview-tab";
 import { GigAttributesTab } from "./tabs/gig-attributes-tab";
 import { GigPackagesTab } from "./tabs/gig-packages-tab";
-
-// -----------------------------------------------------------------------------
-// Domain Types & Constants
-// -----------------------------------------------------------------------------
 
 type ActiveTab = "overview" | "attributes" | "packages";
 
@@ -47,7 +41,6 @@ interface UpsertGigDialogProps {
 }
 
 const PACKAGE_TYPES = ["basic", "standard", "premium"] as const;
-
 const DEFAULT_PACKAGE_CONFIGS: Record<
   (typeof PACKAGE_TYPES)[number],
   { price: number; deliveryTimeDays: number; revisions: number }
@@ -57,10 +50,6 @@ const DEFAULT_PACKAGE_CONFIGS: Record<
   premium: { price: 75, deliveryTimeDays: 1, revisions: 99 },
 };
 
-// -----------------------------------------------------------------------------
-// Factory Pattern: Form Initializer & Normalizer
-// -----------------------------------------------------------------------------
-
 class GigFormFactory {
   static createPackages(
     existingPackages?: GigAuditItem["packages"],
@@ -69,7 +58,6 @@ class GigFormFactory {
       const found = existingPackages?.find(
         (pkg) => pkg.packageType?.toLowerCase() === pType,
       );
-
       if (found) {
         return {
           packageType: pType,
@@ -86,10 +74,8 @@ class GigFormFactory {
             })) ?? [],
         };
       }
-
       const config = DEFAULT_PACKAGE_CONFIGS[pType];
       const formattedTitle = `${pType.charAt(0).toUpperCase() + pType.slice(1)} Package`;
-
       return {
         packageType: pType,
         title: formattedTitle,
@@ -102,11 +88,14 @@ class GigFormFactory {
     });
   }
 
-  static createInitialValues(gigToEdit?: GigAuditItem): GigFormValues {
+  static createInitialValues(
+    gigToEdit?: GigAuditItem,
+    currentUserId?: string,
+  ): GigFormValues {
     if (gigToEdit) {
       return {
         id: gigToEdit.id,
-        sellerId: gigToEdit.seller?.id ?? "",
+        sellerId: gigToEdit.seller?.id ?? currentUserId ?? "",
         categoryId: gigToEdit.category?.id ?? "",
         title: gigToEdit.title,
         slug: gigToEdit.slug,
@@ -117,11 +106,10 @@ class GigFormFactory {
         packages: this.createPackages(gigToEdit.packages),
       };
     }
-
     return {
       title: "",
       slug: "",
-      sellerId: "",
+      sellerId: currentUserId ?? "",
       categoryId: "",
       about: "",
       coverImage: "",
@@ -131,17 +119,18 @@ class GigFormFactory {
   }
 }
 
-// -----------------------------------------------------------------------------
-// Presentation Component
-// -----------------------------------------------------------------------------
-
 export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const isEdit = Boolean(gigToEdit);
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
 
-  const { trpc: trpcClient, createOptions } = useGigMutation();
+  // Integrasi Sesi Auth Client (Better-Auth) dengan Type Assertion
+  const { data: sessionData } = authClient.useSession();
+  const currentUser = sessionData?.user;
+  const isSuperAdmin =
+    (currentUser as { role?: string } | undefined)?.role === "super_admin";
 
+  const { trpc: trpcClient, createOptions } = useGigMutation();
   const { data: sellers } = trpc.admin.getAllSellers.useQuery(undefined, {
     enabled: open,
   });
@@ -155,13 +144,24 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
 
   const form = useForm<GigFormValues>({
     resolver: zodResolver(gigFormSchema),
-    defaultValues: GigFormFactory.createInitialValues(gigToEdit),
+    defaultValues: GigFormFactory.createInitialValues(
+      gigToEdit,
+      currentUser?.id,
+    ),
   });
+
+  // Sinkronisasi otomatis sellerId jika data sesi dimuat setelah render awal
+  useEffect(() => {
+    if (open && currentUser?.id && !form.getValues("sellerId")) {
+      form.setValue("sellerId", currentUser.id);
+    }
+  }, [open, currentUser?.id, form]);
 
   const selectedCategoryId = useWatch({
     control: form.control,
     name: "categoryId",
   });
+
   const attributeOptionIds =
     useWatch({ control: form.control, name: "attributeOptionIds" }) ?? [];
 
@@ -199,16 +199,17 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
     setOpen(isOpen);
     if (isOpen) {
       setActiveTab("overview");
-      form.reset(GigFormFactory.createInitialValues(gigToEdit));
+      form.reset(
+        GigFormFactory.createInitialValues(gigToEdit, currentUser?.id),
+      );
     }
   };
 
   const handleInvalidSubmit = (formErrors: FieldErrors<GigFormValues>) => {
-    console.error("❌ Form Validation Errors:", formErrors);
+    console.error("Form Validation Errors:", formErrors);
     toast.error(
       "Gagal menyimpan. Harap periksa bidang formulir yang belum lengkap.",
     );
-
     if (hasOverviewError) {
       setActiveTab("overview");
     } else if (hasPackagesError) {
@@ -219,6 +220,9 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
   const handleSubmit = (data: GigFormValues) => {
     mutation.mutate({
       ...data,
+      sellerId: isSuperAdmin
+        ? data.sellerId
+        : (currentUser?.id ?? data.sellerId),
       slug: data.slug || slugify(data.title),
     });
   };
@@ -272,7 +276,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
-
             <TabsTrigger
               value="attributes"
               disabled={!isCategoryValid}
@@ -281,7 +284,6 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span>2. Atribut ({attributeOptionIds.length})</span>
             </TabsTrigger>
-
             <TabsTrigger
               value="packages"
               disabled={!isCategoryValid}
@@ -294,20 +296,19 @@ export function UpsertGigDialog({ gigToEdit }: UpsertGigDialogProps) {
               )}
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="overview">
             <GigOverviewTab
               sellers={sellers}
               subcategories={subcategories}
               isEdit={isEdit}
               isPending={mutation.isPending}
+              isSuperAdmin={isSuperAdmin}
+              currentUserId={currentUser?.id}
             />
           </TabsContent>
-
           <TabsContent value="attributes">
             <GigAttributesTab attributes={catMeta?.attributes} />
           </TabsContent>
-
           <TabsContent value="packages">
             <GigPackagesTab packageFeatures={catMeta?.packageFeatures} />
           </TabsContent>

@@ -1,3 +1,4 @@
+// src/app/admin/gigs/_components/dialogs/tabs/gig-overview-tab.tsx
 "use client";
 
 import { useFormContext } from "react-hook-form";
@@ -29,6 +30,8 @@ interface GigOverviewTabProps {
   subcategories: Array<{ id: string; name: string }>;
   isEdit: boolean;
   isPending: boolean;
+  isSuperAdmin: boolean;
+  currentUserId?: string;
 }
 
 export function GigOverviewTab({
@@ -36,6 +39,8 @@ export function GigOverviewTab({
   subcategories,
   isEdit,
   isPending,
+  isSuperAdmin,
+  currentUserId,
 }: GigOverviewTabProps) {
   const form = useFormContext<GigFormValues>();
 
@@ -57,7 +62,6 @@ export function GigOverviewTab({
                 {...field}
                 onChange={(e) => {
                   field.onChange(e);
-                  // Hanya auto-slug jika mode Create DAN user belum mengedit field slug secara manual
                   const isSlugDirty = form.getFieldState("slug").isDirty;
                   if (!isEdit && !isSlugDirty) {
                     form.setValue("slug", slugify(e.target.value), {
@@ -98,32 +102,59 @@ export function GigOverviewTab({
         <FormField
           control={form.control}
           name="sellerId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                Seller / Freelancer
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? undefined}
-                disabled={isPending}
-              >
-                <FormControl>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Pilih Seller" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {sellers?.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            // Nilai aktif seller: Jika bukan Super Admin, paksa selalu menggunakan currentUserId
+            const activeSellerId = !isSuperAdmin
+              ? (currentUserId ?? field.value)
+              : field.value;
+
+            return (
+              <FormItem>
+                <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center justify-between">
+                  <span>Seller / Freelancer</span>
+                  {!isSuperAdmin && (
+                    <span className="text-[10px] text-primary font-semibold lowercase">
+                      (Akun Anda)
+                    </span>
+                  )}
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={activeSellerId ?? undefined}
+                  disabled={isPending || !isSuperAdmin}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-9 text-xs disabled:opacity-80 disabled:bg-muted/50">
+                      <SelectValue placeholder="Pilih Seller" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {isSuperAdmin ? (
+                      sellers?.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      // Jika Admin (Seller) biasa, hanya tampilkan opsi dirinya sendiri
+                      <SelectItem
+                        value={currentUserId ?? field.value ?? "self"}
+                      >
+                        {sellers?.find((s) => s.id === currentUserId)?.name ??
+                          "Akun Anda"}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                {!isSuperAdmin && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Otomatis ditetapkan ke toko milik Anda.
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
@@ -158,7 +189,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* Field: Cover Image (Single Cloudinary Upload Source) */}
+      {/* Field: Cover Image */}
       <FormField
         control={form.control}
         name="coverImage"
