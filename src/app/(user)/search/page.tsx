@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { trpcServer } from "@/lib/trpc/server";
 import { GigCard } from "@/components/gigs/GigCard";
-import { SearchHeader } from "./_components/SearchHeader";
-import { SearchFilters } from "./_components/SearchFilters";
-import { SearchEmptyState } from "./_components/SearchEmptySearch";
+import { SearchFilters } from "@/components/filters/SearchFilters";
+import { SearchEmptyState } from "@/components/filters/SearchEmptySearch";
+import { SearchHeader } from "@/components/filters/SearchHeader";
 
 interface SearchPageProps {
   searchParams: Promise<{
