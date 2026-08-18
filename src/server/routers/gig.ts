@@ -26,14 +26,7 @@ import {
 // SCHEMAS & TYPES
 // ============================================================================
 
-/**
- * Skema validasi input untuk prosedur pencarian dan penyaringan Gig.
- *
- * Menggunakan sanitasi string otomatis (`trim`) dan pembatas rentang
- * angka untuk mencegah kueri database yang tidak efisien.
- */
 export const searchGigsInputSchema = z.object({
-  /** Kata kunci pencarian untuk judul gig, deskripsi 'about', atau nama kategori */
   q: z
     .string()
     .trim()
@@ -42,7 +35,6 @@ export const searchGigsInputSchema = z.object({
       "Kata kunci pencarian bebas (mencari pada title, about, dan category.name)",
     ),
 
-  /** URL Slug dari kategori utama atau sub-kategori */
   categorySlug: z
     .string()
     .trim()
@@ -52,21 +44,18 @@ export const searchGigsInputSchema = z.object({
       "Slug unik kategori. Mendukung filter otomatis untuk parent & sub-kategori",
     ),
 
-  /** Batas harga minimum berdasarkan harga paket terkecil */
   minPrice: z
     .number()
     .min(0, "Harga minimum tidak boleh negatif")
     .optional()
     .describe("Filter batas harga terendah ($)"),
 
-  /** Batas harga maksimum berdasarkan harga paket terkecil */
   maxPrice: z
     .number()
     .min(0, "Harga maksimum tidak boleh negatif")
     .optional()
     .describe("Filter batas harga tertinggi ($)"),
 
-  /** Kriteria pengurutan hasil */
   sortBy: z
     .enum(["relevance", "newest", "price_asc", "price_desc"])
     .default("relevance")
@@ -74,7 +63,6 @@ export const searchGigsInputSchema = z.object({
 
   attributeOptionIds: z.array(z.string()).optional(),
 
-  /** Nomor halaman aktif (1-based index) */
   page: z
     .number()
     .int()
@@ -82,7 +70,6 @@ export const searchGigsInputSchema = z.object({
     .default(1)
     .describe("Halaman yang ingin diambil"),
 
-  /** Jumlah item per halaman */
   limit: z
     .number()
     .int()
@@ -92,20 +79,13 @@ export const searchGigsInputSchema = z.object({
     .describe("Batas jumlah data per halaman (maksimal 100)"),
 });
 
-/** Tipe inferensi TypeScript untuk input pencarian Gig */
 export type SearchGigsInput = z.infer<typeof searchGigsInputSchema>;
 
 // ============================================================================
 // ROUTER DEFINITION
 // ============================================================================
 
-/**
- * Router tRPC untuk mengelola entitas Gig/Layanan Freelance.
- */
 export const gigRouter = router({
-  /**
-   * Mengambil atribut & opsi filter berdasarkan slug kategori
-   */
   getCategoryAttributes: publicProcedure
     .input(z.object({ categorySlug: z.string().optional() }))
     .query(async ({ input }) => {
@@ -127,9 +107,6 @@ export const gigRouter = router({
       return category?.attributes ?? [];
     }),
 
-  /**
-   * Mengambil detail Gig berdasarkan slug beserta relasi Seller, Category, dan Packages
-   */
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
@@ -158,33 +135,7 @@ export const gigRouter = router({
 
       return gig ?? null;
     }),
-  /**
-   * Mengambil daftar Gig berdasarkan kriteria pencarian, filter kategori, rentang harga, dan paginasi.
-   *
-   * @remarks
-   * **Fitur & Perilaku Kueri:**
-   * 1. **Pencarian Teks Bebas (`q`):** Menggunakan kueri `ILIKE` case-insensitive pada judul, deskripsi `about`, dan nama kategori.
-   * 2. **Hierarki Kategori (`categorySlug`):** Menggunakan kueri `EXISTS` untuk mencocokkan Gig jika `categorySlug` adalah kategori langsung **atau** induk (*parent category*) dari Gig tersebut.
-   * 3. **Agregasi Harga Terendah:** Menghitung `startingPrice` dinamis menggunakan agregasi `MIN(gig_packages.price)` melalui klausa `HAVING`.
-   * 4. **Eksekusi Paralel:** Kueri item dan hitung total data dijalankan secara bersamaan menggunakan `Promise.all`.
-   *
-   * @param input - Objek kriteria penyaringan {@link SearchGigsInput}
-   * @returns Objek yang berisi daftar item Gig dan metadata paginasi
-   *
-   * @example
-   * Pemanggilan dari React Client (Next.js):
-   * ```tsx
-   * const { data, isLoading } = trpc.gig.search.useQuery({
-   *   q: "logo design",
-   *   categorySlug: "graphics-design",
-   *   minPrice: 10,
-   *   maxPrice: 100,
-   *   sortBy: "price_asc",
-   *   page: 1,
-   *   limit: 12,
-   * });
-   * ```
-   */
+
   search: publicProcedure
     .input(searchGigsInputSchema)
     .query(async ({ input }) => {
@@ -201,11 +152,10 @@ export const gigRouter = router({
       const offset = (page - 1) * limit;
 
       // ----------------------------------------------------------------------
-      // 1. KONDISI WHERE (Kriteria Penyaringan Lapis Pertama)
+      // 1. KONDISI WHERE
       // ----------------------------------------------------------------------
       const whereConditions = [];
 
-      // Filter kata kunci pada Title, About, atau Kategori
       if (q && q !== "") {
         const searchTerm = `%${q}%`;
         whereConditions.push(
@@ -217,7 +167,6 @@ export const gigRouter = router({
         );
       }
 
-      // Filter Kategori (Mendukung Parent Category & Sub-category)
       if (categorySlug && categorySlug !== "") {
         whereConditions.push(
           or(
@@ -231,7 +180,6 @@ export const gigRouter = router({
         );
       }
 
-      // Filter berdasarkan opsi atribut (Many-to-Many via gigAttributeOptions)
       if (attributeOptionIds && attributeOptionIds.length > 0) {
         whereConditions.push(
           sql`EXISTS (
@@ -246,7 +194,7 @@ export const gigRouter = router({
         whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
       // ----------------------------------------------------------------------
-      // 2. KONDISI HAVING (Filter Berdasarkan Agregasi Paket Harga)
+      // 2. KONDISI HAVING
       // ----------------------------------------------------------------------
       const havingConditions = [];
       if (minPrice !== undefined) {
@@ -264,22 +212,38 @@ export const gigRouter = router({
       let orderByClause;
       switch (sortBy) {
         case "newest":
-          orderByClause = desc(gigs.createdAt);
+          orderByClause = [desc(gigs.createdAt)];
           break;
         case "price_asc":
-          orderByClause = asc(sql`MIN(${gigPackages.price})`);
+          orderByClause = [
+            asc(sql`MIN(${gigPackages.price})`),
+            desc(gigs.createdAt),
+          ];
           break;
         case "price_desc":
-          orderByClause = desc(sql`MIN(${gigPackages.price})`);
+          orderByClause = [
+            desc(sql`MIN(${gigPackages.price})`),
+            desc(gigs.createdAt),
+          ];
           break;
         case "relevance":
         default:
-          orderByClause = desc(gigs.createdAt);
+          if (q && q.trim() !== "") {
+            const searchTerm = `%${q.trim()}%`;
+            orderByClause = [
+              desc(
+                sql`CASE WHEN ${gigs.title} ILIKE ${searchTerm} THEN 2 ELSE 1 END`,
+              ),
+              desc(gigs.createdAt),
+            ];
+          } else {
+            orderByClause = [desc(gigs.createdAt)];
+          }
           break;
       }
 
       // ----------------------------------------------------------------------
-      // 4. KUERI UTAMA & HITUNG TOTAL (Parallel Execution)
+      // 4. KUERI UTAMA & HITUNG TOTAL
       // ----------------------------------------------------------------------
       const itemsQuery = db
         .select({
@@ -308,7 +272,7 @@ export const gigRouter = router({
         .where(whereClause)
         .groupBy(gigs.id, user.id, categories.id)
         .having(havingClause)
-        .orderBy(orderByClause)
+        .orderBy(...orderByClause) // 👈 SPREAD OPERATOR DI SINI (Memperbaiki Error 2769)
         .limit(limit)
         .offset(offset);
 

@@ -29,14 +29,12 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
       {/* BARIS 1: Dropdown Filters Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Popover Filter Kategori */}
           <CategoryFilterPopover
             selectedCategorySlug={categorySlug}
             isPending={isPending}
             onSelectCategory={(slug) => updateFilters({ categorySlug: slug })}
           />
 
-          {/* Popover Filter Budget */}
           <BudgetFilterPopover
             minPrice={minPrice}
             maxPrice={maxPrice}
@@ -46,7 +44,6 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
             }
           />
 
-          {/* Popover Filter Opsi Layanan Dinamis */}
           <ServiceOptionsFilterPopover
             categorySlug={categorySlug}
             selectedOptionIds={selectedOptionIds}
@@ -80,6 +77,7 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
 
         <SortBySelect
           value={sortBy}
+          disabled={isPending}
           onChange={(val) => updateFilters({ sortBy: val })}
         />
       </div>
