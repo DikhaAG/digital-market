@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface ServiceOptionsFilterPopoverProps {
+export interface ServiceOptionsFilterPopoverProps {
   categorySlug: string;
   selectedOptionIds: string[];
   isPending: boolean;
@@ -100,7 +100,7 @@ export function ServiceOptionsFilterPopover({
 
       <PopoverContent
         align="start"
-        className="w-[90vw] sm:w-105 p-0 rounded-2xl shadow-xl border-border/80 overflow-hidden"
+        className="w-[90vw] sm:w-105 p-0 rounded-2xl shadow-xl border-border/80 overflow-hidden z-60"
       >
         <div className="p-4 border-b border-border/60 bg-muted/30 flex items-center justify-between">
           <div>

@@ -3,7 +3,12 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 
-export function useSearchFilterParams() {
+interface UseFilterParamsOptions {
+  /** Slug kategori default/terkunci (digunakan pada halaman /categories/[category]) */
+  fixedCategorySlug?: string;
+}
+
+export function useFilterParams(options?: UseFilterParamsOptions) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -13,7 +18,11 @@ export function useSearchFilterParams() {
   const maxPrice = searchParams.get("maxPrice") ?? "";
   const sortBy = searchParams.get("sortBy") ?? "relevance";
   const proServices = searchParams.get("pro") === "true";
-  const categorySlug = searchParams.get("categorySlug") ?? "";
+
+  // Menggunakan query param 'categorySlug' ATAU fallback ke fixedCategorySlug dari route params
+  const queryCategorySlug = searchParams.get("categorySlug") ?? "";
+  const activeCategorySlug =
+    queryCategorySlug || (options?.fixedCategorySlug ?? "");
 
   const rawOptions = searchParams.get("options") ?? "";
   const selectedOptionIds = rawOptions
@@ -41,7 +50,6 @@ export function useSearchFilterParams() {
   const updateFilters = (paramsToUpdate: Record<string, string | null>) => {
     const queryString = createQueryString(paramsToUpdate);
     startTransition(() => {
-      // 👈 scroll: false mencegah lonjakan halaman
       router.push(`${pathname}?${queryString}`, { scroll: false });
     });
   };
@@ -66,7 +74,8 @@ export function useSearchFilterParams() {
   };
 
   return {
-    categorySlug,
+    categorySlug: activeCategorySlug,
+    queryCategorySlug,
     minPrice,
     maxPrice,
     sortBy,

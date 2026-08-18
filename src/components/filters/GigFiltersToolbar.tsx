@@ -1,17 +1,29 @@
 "use client";
 
-import { useFilterParams } from "./hooks/useFilterParams";
 import { CategoryFilterPopover } from "./CategoryFilterPopover";
 import { BudgetFilterPopover } from "./BudgetFilterPopover";
 import { ServiceOptionsFilterPopover } from "./ServiceOptionsFilterPopover";
 import { ActiveFilterChips } from "./ActiveFilterChips";
 import { SortBySelect } from "./SortBySelect";
+import { useFilterParams } from "./hooks/useFilterParams";
 
-interface SearchFiltersProps {
+export interface GigFiltersToolbarProps {
+  /** Total hasil pencarian dari server */
   totalResults: number;
+  /** Slug kategori terkunci jika berada di halaman kategori /categories/[category] */
+  fixedCategorySlug?: string;
+  /** Apakah dropdown filter kategori disembunyikan */
+  hideCategoryFilter?: boolean;
+  /** Apakah chip filter kategori ditampilkan di baris active chips */
+  showCategoryChip?: boolean;
 }
 
-export function SearchFilters({ totalResults }: SearchFiltersProps) {
+export function GigFiltersToolbar({
+  totalResults,
+  fixedCategorySlug,
+  hideCategoryFilter = false,
+  showCategoryChip = true,
+}: GigFiltersToolbarProps) {
   const {
     categorySlug,
     minPrice,
@@ -22,19 +34,23 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
     isPending,
     updateFilters,
     removeFilterChip,
-  } = useFilterParams();
+  } = useFilterParams({ fixedCategorySlug });
 
   return (
     <div className="space-y-4">
       {/* BARIS 1: Dropdown Filters Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <CategoryFilterPopover
-            selectedCategorySlug={categorySlug}
-            isPending={isPending}
-            onSelectCategory={(slug) => updateFilters({ categorySlug: slug })}
-          />
+          {/* Popover Filter Kategori (opsional disembunyikan di halaman spesifik) */}
+          {!hideCategoryFilter && (
+            <CategoryFilterPopover
+              selectedCategorySlug={categorySlug}
+              isPending={isPending}
+              onSelectCategory={(slug) => updateFilters({ categorySlug: slug })}
+            />
+          )}
 
+          {/* Popover Filter Budget */}
           <BudgetFilterPopover
             minPrice={minPrice}
             maxPrice={maxPrice}
@@ -44,6 +60,7 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
             }
           />
 
+          {/* Popover Filter Opsi Layanan Dinamis */}
           <ServiceOptionsFilterPopover
             categorySlug={categorySlug}
             selectedOptionIds={selectedOptionIds}
@@ -64,6 +81,7 @@ export function SearchFilters({ totalResults }: SearchFiltersProps) {
         maxPrice={maxPrice}
         proServices={proServices}
         selectedOptionIds={selectedOptionIds}
+        showCategoryChip={showCategoryChip}
         onRemove={removeFilterChip}
       />
 

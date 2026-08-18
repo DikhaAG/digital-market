@@ -4,12 +4,13 @@ import { useMemo } from "react";
 import { X } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 
-interface ActiveFilterChipsProps {
+export interface ActiveFilterChipsProps {
   categorySlug?: string;
   minPrice?: string;
   maxPrice?: string;
   proServices?: boolean;
   selectedOptionIds?: string[];
+  showCategoryChip?: boolean;
   onRemove: (key: string, valueToRemove?: string) => void;
 }
 
@@ -19,6 +20,7 @@ export function ActiveFilterChips({
   maxPrice,
   proServices,
   selectedOptionIds = [],
+  showCategoryChip = true,
   onRemove,
 }: ActiveFilterChipsProps) {
   const hasBudgetFilter = Boolean(minPrice || maxPrice);
@@ -45,7 +47,6 @@ export function ActiveFilterChips({
     return categorySlug;
   }, [categorySlug, categories]);
 
-  // Resolusi nama label untuk chip opsi atribut
   const optionMap = useMemo(() => {
     const map = new Map<string, string>();
     if (!attributes) return map;
@@ -57,19 +58,21 @@ export function ActiveFilterChips({
     return map;
   }, [attributes]);
 
+  const shouldRenderCategory = showCategoryChip && categorySlug;
+
   if (
     !hasBudgetFilter &&
     !proServices &&
-    !categorySlug &&
+    !shouldRenderCategory &&
     selectedOptionIds.length === 0
   ) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 pt-1">
       {/* Category Active Chip */}
-      {categorySlug && (
+      {shouldRenderCategory && (
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
           Category: {categoryName}
           <button

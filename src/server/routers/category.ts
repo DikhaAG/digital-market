@@ -9,33 +9,27 @@ export const categoryRouter = router({
    * beserta daftar sub-kategorinya sekaligus
    */
   getAllWithSubcategories: publicProcedure.query(async () => {
-    const data = await db.query.categories.findMany({
+    return await db.query.categories.findMany({
       where: {
         parentId: { isNull: true },
       },
       with: {
-        subcategories: true, // Auto-join ke tabel subCategories
+        subcategories: {
+          orderBy: (sub, { asc }) => [asc(sub.name)],
+        },
       },
       orderBy: (categories, { asc }) => [asc(categories.name)],
     });
-
-    return data;
   }),
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
       const category = await db.query.categories.findFirst({
         where: {
-          AND: [
-            { slug: input.slug },
-            {
-              parentId: {
-                isNull: true,
-              },
-            },
-          ],
+          slug: input.slug,
         },
         with: {
+          parent: true,
           subcategories: {
             orderBy: (sub, { asc }) => [asc(sub.name)],
           },

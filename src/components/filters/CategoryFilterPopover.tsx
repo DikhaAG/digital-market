@@ -65,7 +65,7 @@ export function CategoryFilterPopover({
             )}
           >
             <Layers className="h-4 w-4 opacity-70" />
-            <span className="truncate max-w-[160px]">
+            <span className="truncate max-w-40">
               {selectedCategoryName ?? "Category"}
             </span>
             <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
