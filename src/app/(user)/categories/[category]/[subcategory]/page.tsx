@@ -161,9 +161,9 @@ export default async function SubcategoryPage({
           <GigFiltersToolbar
             totalResults={pagination.total}
             fixedCategorySlug={subcategorySlug}
+            initialCategoryName={`${parentCategory.name} > ${subcategoryData.name}`}
             showCategoryChip={false}
           />
-
           {items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
               {items.map((item) => (

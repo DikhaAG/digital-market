@@ -12,6 +12,8 @@ export interface GigFiltersToolbarProps {
   totalResults: number;
   /** Slug kategori terkunci jika berada di halaman kategori /categories/[category] */
   fixedCategorySlug?: string;
+  /** Nama kategori awal dari server untuk menghindari hydration mismatch */
+  initialCategoryName?: string;
   /** Apakah dropdown filter kategori disembunyikan */
   hideCategoryFilter?: boolean;
   /** Apakah chip filter kategori ditampilkan di baris active chips */
@@ -21,6 +23,7 @@ export interface GigFiltersToolbarProps {
 export function GigFiltersToolbar({
   totalResults,
   fixedCategorySlug,
+  initialCategoryName,
   hideCategoryFilter = false,
   showCategoryChip = true,
 }: GigFiltersToolbarProps) {
@@ -41,16 +44,15 @@ export function GigFiltersToolbar({
       {/* BARIS 1: Dropdown Filters Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Popover Filter Kategori (opsional disembunyikan di halaman spesifik) */}
           {!hideCategoryFilter && (
             <CategoryFilterPopover
               selectedCategorySlug={categorySlug}
+              initialCategoryName={initialCategoryName}
               isPending={isPending}
               onSelectCategory={(slug) => updateFilters({ categorySlug: slug })}
             />
           )}
 
-          {/* Popover Filter Budget */}
           <BudgetFilterPopover
             minPrice={minPrice}
             maxPrice={maxPrice}
@@ -60,7 +62,6 @@ export function GigFiltersToolbar({
             }
           />
 
-          {/* Popover Filter Opsi Layanan Dinamis */}
           <ServiceOptionsFilterPopover
             categorySlug={categorySlug}
             selectedOptionIds={selectedOptionIds}

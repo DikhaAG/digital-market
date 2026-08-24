@@ -14,13 +14,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface CategoryFilterPopoverProps {
-  selectedCategorySlug: string;
-  isPending: boolean;
+  selectedCategorySlug?: string;
+  initialCategoryName?: string;
+  isPending?: boolean;
   onSelectCategory: (categorySlug: string | null) => void;
 }
 
 export function CategoryFilterPopover({
   selectedCategorySlug,
+  initialCategoryName,
   isPending,
   onSelectCategory,
 }: CategoryFilterPopoverProps) {
@@ -46,6 +48,9 @@ export function CategoryFilterPopover({
     return null;
   }, [selectedCategorySlug, categories]);
 
+  const displayCategoryName =
+    selectedCategoryName ?? initialCategoryName ?? "Category";
+
   const handleSelect = (slug: string | null) => {
     setOpen(false);
     onSelectCategory(slug);
@@ -65,9 +70,7 @@ export function CategoryFilterPopover({
             )}
           >
             <Layers className="h-4 w-4 opacity-70" />
-            <span className="truncate max-w-40">
-              {selectedCategoryName ?? "Category"}
-            </span>
+            <span className="truncate max-w-40">{displayCategoryName}</span>
             <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
           </Button>
         }
@@ -92,7 +95,6 @@ export function CategoryFilterPopover({
         {/* Categories Tree List */}
         {categories && (
           <div className="space-y-1">
-            {/* Opsi Semua Kategori */}
             <button
               type="button"
               onClick={() => handleSelect(null)}
@@ -109,13 +111,11 @@ export function CategoryFilterPopover({
 
             <div className="h-px bg-border my-1" />
 
-            {/* List Parent Categories & Subcategories */}
             {categories.map((category) => {
               const isParentSelected = selectedCategorySlug === category.slug;
 
               return (
                 <div key={category.id} className="space-y-0.5">
-                  {/* Parent Category Header / Option */}
                   <button
                     type="button"
                     onClick={() => handleSelect(category.slug)}
@@ -130,7 +130,6 @@ export function CategoryFilterPopover({
                     )}
                   </button>
 
-                  {/* Subcategories */}
                   {category.subcategories &&
                     category.subcategories.length > 0 && (
                       <div className="pl-4 space-y-0.5 border-l-2 border-border/50 ml-3 my-0.5">
