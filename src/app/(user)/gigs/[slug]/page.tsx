@@ -1,18 +1,13 @@
-// src/app/(user)/gigs/[slug]/page.tsx
+//src/app/(user)/gigs/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
-import {
-  ChevronRight,
-  Star,
-  ShieldCheck,
-  User as UserIcon,
-} from "lucide-react";
+import { Star, ShieldCheck, User as UserIcon } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PackageTabs } from "./_components/PackageTabs";
+import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 
 interface PageProps {
   params: Promise<{
@@ -56,40 +51,28 @@ export default async function GigDetailPage({ params }: PageProps) {
 
   const { seller, category, packages } = gig;
 
+  // Membangun array breadcrumbs sesuai hirarki induk & anak kategori
+  const breadcrumbItems = [
+    ...(category.parent
+      ? [
+          {
+            label: category.parent.name,
+            href: `/categories/${category.parent.slug}`,
+          },
+        ]
+      : []),
+    {
+      label: category.name,
+      href: category.parent
+        ? `/categories/${category.parent.slug}/${category.slug}`
+        : `/categories/${category.slug}`,
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb">
-        <ol className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium">
-          <li>
-            <Link href="/" className="hover:text-foreground transition-colors">
-              Home
-            </Link>
-          </li>
-          {category.parent && (
-            <>
-              <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-              <li>
-                <Link
-                  href={`/categories/${category.parent.slug}`}
-                  className="hover:text-foreground transition-colors"
-                >
-                  {category.parent.name}
-                </Link>
-              </li>
-            </>
-          )}
-          <ChevronRight className="h-3.5 w-3.5 opacity-40" />
-          <li>
-            <Link
-              href={`/categories/${category.slug}`}
-              className="hover:text-foreground transition-colors"
-            >
-              {category.name}
-            </Link>
-          </li>
-        </ol>
-      </nav>
+      {/* Integrated Unified Breadcrumb Component */}
+      <CategoryBreadcrumbs items={breadcrumbItems} />
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
