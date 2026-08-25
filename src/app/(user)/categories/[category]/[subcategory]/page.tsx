@@ -2,9 +2,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";
-import { Sparkles } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
-import { Badge } from "@/components/ui/badge";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { GigCard } from "@/components/gigs/GigCard";
 import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
@@ -34,7 +32,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `Jasa ${subcategoryData.name} Terbaik | Marketplace`,
+    title: `Jasa ${subcategoryData.name} Terbaik | Freelance Marketplace`,
     description: `Temukan jasa freelance ${subcategoryData.name} profesional terverifikasi untuk mendukung proyek Anda.`,
   };
 }
@@ -54,7 +52,6 @@ export default async function SubcategoryPage({
 
   const trpc = await trpcServer();
 
-  // Parallel Fetching untuk Kategori Induk, Sub-Kategori, dan Item Gig
   const [parentCategory, subcategoryData, gigsResponse] = await Promise.all([
     trpc.category.getBySlug({ slug: parentCategorySlug }),
     trpc.category.getBySlug({ slug: subcategorySlug }),
@@ -69,7 +66,6 @@ export default async function SubcategoryPage({
     }),
   ]);
 
-  // Validasi Hirarki Domain (Memastikan Sub-kategori adalah Anak dari Induk Kategori)
   if (
     !subcategoryData ||
     !parentCategory ||
@@ -112,37 +108,24 @@ export default async function SubcategoryPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Subcategory Specific Hero Section */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-card to-background text-foreground p-6 sm:p-10 border border-primary/15 shadow-xs">
-          <div className="relative z-10 max-w-3xl space-y-4">
-            {/* Unified Breadcrumb Component */}
-            <CategoryBreadcrumbs
-              items={[
-                {
-                  label: parentCategory.name,
-                  href: `/categories/${parentCategory.slug}`,
-                },
-                {
-                  label: subcategoryData.name,
-                },
-              ]}
-            />
-
-            <div className="space-y-2">
-              <Badge
-                variant="outline"
-                className="border-primary/25 bg-primary/10 text-primary backdrop-blur-md px-3 py-1 text-xs font-medium gap-1.5 rounded-full"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                Sub-spesialisasi Terverifikasi
-              </Badge>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-                {subcategoryData.name}
-              </h1>
-            </div>
-          </div>
-        </section>
+      <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* Minimal Contextual Header (Hanya Breadcrumbs & Judul Sub-Kategori) */}
+        <div className="space-y-3 pt-2">
+          <CategoryBreadcrumbs
+            items={[
+              {
+                label: parentCategory.name,
+                href: `/categories/${parentCategory.slug}`,
+              },
+              {
+                label: subcategoryData.name,
+              },
+            ]}
+          />
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+            {subcategoryData.name}
+          </h1>
+        </div>
 
         {/* Toolbar Filter & Grid Katalog */}
         <div className="space-y-6">
@@ -168,9 +151,9 @@ export default async function SubcategoryPage({
             </div>
           ) : (
             <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-muted/20 my-6">
-              <h4 className="text-base font-bold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 Belum Ada Layanan pada Sub-Kategori Ini
-              </h4>
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
                 Coba kembali ke halaman kategori utama atau sesuaikan kriteria
                 pencarian Anda.

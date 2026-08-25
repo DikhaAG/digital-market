@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { trpcServer } from "@/lib/trpc/server";
-import { CategoryHero } from "./_components/hero";
 import { ExploreGrid } from "./_components/explore-grid";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { GigCard } from "@/components/gigs/GigCard";
+import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 
 interface CategoryPageProps {
   params: Promise<{ category: string }>;
@@ -27,14 +27,14 @@ export async function generateMetadata({
   const categoryData = await trpc.category.getBySlug({ slug: categorySlug });
 
   if (!categoryData || categoryData.parentId !== null) {
-    return { title: "Category Not Found | Fiverr Clone" };
+    return { title: "Category Not Found | Freelance Marketplace" };
   }
 
   return {
-    title: `${categoryData.name} Services | Fiverr Clone`,
+    title: `${categoryData.name} Services | Freelance Marketplace`,
     description: `Temukan talenta freelance terbaik di bidang ${categoryData.name}. Kerjakan proyek Anda bersama profesional terverifikasi.`,
     openGraph: {
-      title: `${categoryData.name} Services | Fiverr Clone`,
+      title: `${categoryData.name} Services | Freelance Marketplace`,
       description: `Temukan talenta freelance terbaik di bidang ${categoryData.name}.`,
     },
   };
@@ -99,20 +99,28 @@ export default async function CategoryPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="container mx-auto px-4 py-8 space-y-10">
-        <CategoryHero categoryName={categoryData.name} />
+      <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* Minimal Contextual Header (Hanya Breadcrumbs & Judul Kategori) */}
+        <div className="space-y-3 pt-2">
+          <CategoryBreadcrumbs items={[{ label: categoryData.name }]} />
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+            {categoryData.name}
+          </h1>
+        </div>
 
+        {/* Sub-Kategori Explore Grid */}
         <ExploreGrid
           categoryName={categoryData.name}
           categorySlug={categoryData.slug}
           subcategories={categoryData.subcategories ?? []}
         />
 
+        {/* Section Katalog Layanan & Filter Toolbar */}
         <section className="space-y-6 pt-4 border-t border-border/60">
           <div className="space-y-1">
-            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               Semua Layanan di {categoryData.name}
-            </h3>
+            </h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Gunakan filter di bawah untuk menemukan spesifikasi layanan yang
               tepat
@@ -139,9 +147,9 @@ export default async function CategoryPage({
             </div>
           ) : (
             <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-muted/20 my-6">
-              <h4 className="text-base font-bold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 Belum Ada Layanan Tersedia
-              </h4>
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
                 Coba sesuaikan filter atau rentang budget Anda untuk melihat
                 hasil lainnya.
