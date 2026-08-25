@@ -1,7 +1,7 @@
 //src/app/(user)/categories/[category]/_components/hero.tsx
-import Link from "next/link";
-import { Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 
 interface CategoryHeroProps {
   categoryName: string;
@@ -12,25 +12,7 @@ export function CategoryHero({ categoryName }: CategoryHeroProps) {
     <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-card to-background text-foreground p-6 sm:p-10 lg:p-12 shadow-md border border-primary/15">
       <div className="relative z-10 max-w-3xl space-y-6">
         {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb">
-          <ol className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-            <li>
-              <Link
-                href="/"
-                className="hover:text-foreground transition-colors"
-              >
-                Home
-              </Link>
-            </li>
-            <ChevronRight className="h-3.5 w-3.5 opacity-50" />
-            <li
-              className="text-primary font-semibold truncate"
-              aria-current="page"
-            >
-              {categoryName}
-            </li>
-          </ol>
-        </nav>
+        <CategoryBreadcrumbs items={[{ label: categoryName }]} />
 
         {/* Badge & Title */}
         <div className="space-y-3">

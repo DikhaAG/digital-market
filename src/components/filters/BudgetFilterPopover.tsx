@@ -1,12 +1,11 @@
-//src/components/filters/BudgetFilterPopover.tsx
+// src/components/filters/BudgetFilterPopover.tsx
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
 import {
   Popover,
   PopoverContent,
@@ -16,10 +15,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const budgetSchema = z.object({
-  minPrice: z.string().optional(),
-  maxPrice: z.string().optional(),
-});
+// Schema Validasi Aturan Bisnis (Business Logic Guardrail)
+const budgetSchema = z
+  .object({
+    minPrice: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !val || Number(val) >= 0,
+        "Harga minimum tidak boleh negatif",
+      ),
+    maxPrice: z
+      .string()
+      .optional()
+      .refine(
+        (val) => !val || Number(val) >= 0,
+        "Harga maksimum tidak boleh negatif",
+      ),
+  })
+  .refine(
+    (data) => {
+      if (data.minPrice && data.maxPrice) {
+        return Number(data.minPrice) <= Number(data.maxPrice);
+      }
+      return true;
+    },
+    {
+      message: "Harga minimum tidak boleh lebih besar dari maksimum",
+      path: ["maxPrice"],
+    },
+  );
 
 type BudgetValues = z.infer<typeof budgetSchema>;
 
@@ -37,8 +62,11 @@ export function BudgetFilterPopover({
   onApply,
 }: BudgetFilterPopoverProps) {
   const [open, setOpen] = useState(false);
-
-  const { register, handleSubmit } = useForm<BudgetValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<BudgetValues>({
     resolver: zodResolver(budgetSchema),
     values: { minPrice, maxPrice },
   });
@@ -48,27 +76,38 @@ export function BudgetFilterPopover({
     onApply(data.minPrice || null, data.maxPrice || null);
   };
 
+  const hasActiveBudget = Boolean(minPrice || maxPrice);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
           <Button
-            variant="outline"
-            className="rounded-xl border-border font-semibold text-sm h-10 px-4 hover:border-foreground transition-all gap-2 cursor-pointer"
+            variant={hasActiveBudget ? "default" : "outline"}
+            className="rounded-xl border-border font-semibold text-sm h-10 px-4 transition-all gap-2 cursor-pointer"
           >
-            Budget
+            <span>Budget</span>
             <ChevronDown className="h-4 w-4 opacity-60" />
           </Button>
         }
       ></PopoverTrigger>
-      <PopoverContent className="w-80 p-4 space-y-4 rounded-2xl" align="start">
-        <div className="font-bold text-sm">Budget Range</div>
+      <PopoverContent
+        className="w-80 p-4 space-y-4 rounded-2xl shadow-xl"
+        align="start"
+      >
+        <div className="space-y-1 border-b border-border/60 pb-2">
+          <h4 className="font-bold text-sm text-foreground">Rentang Budget</h4>
+          <p className="text-xs text-muted-foreground">
+            Tentukan batas harga minimum dan maksimum ($)
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label
                 htmlFor="minPrice"
-                className="text-xs text-muted-foreground"
+                className="text-xs text-muted-foreground font-semibold"
               >
                 MIN ($)
               </Label>
@@ -77,12 +116,13 @@ export function BudgetFilterPopover({
                 type="number"
                 placeholder="Any"
                 {...register("minPrice")}
+                className="h-9 rounded-xl"
               />
             </div>
             <div className="space-y-1">
               <Label
                 htmlFor="maxPrice"
-                className="text-xs text-muted-foreground"
+                className="text-xs text-muted-foreground font-semibold"
               >
                 MAX ($)
               </Label>
@@ -91,15 +131,27 @@ export function BudgetFilterPopover({
                 type="number"
                 placeholder="Any"
                 {...register("maxPrice")}
+                className="h-9 rounded-xl"
               />
             </div>
           </div>
+
+          {/* Render Error Validasi Aturan Bisnis */}
+          {(errors.minPrice || errors.maxPrice) && (
+            <div className="flex items-center gap-1.5 p-2 rounded-lg bg-destructive/10 text-destructive text-xs">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                {errors.maxPrice?.message || errors.minPrice?.message}
+              </span>
+            </div>
+          )}
+
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full rounded-xl cursor-pointer"
+            className="w-full rounded-xl font-bold cursor-pointer"
           >
-            Apply
+            Terapkan Budget
           </Button>
         </form>
       </PopoverContent>

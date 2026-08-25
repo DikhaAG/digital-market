@@ -1,4 +1,4 @@
-//src/components/filters/GigFiltersToolbar.tsx
+// src/components/filters/GigFiltersToolbar.tsx
 "use client";
 
 import { CategoryFilterPopover } from "./CategoryFilterPopover";
@@ -9,15 +9,10 @@ import { SortBySelect } from "./SortBySelect";
 import { useFilterParams } from "./hooks/useFilterParams";
 
 export interface GigFiltersToolbarProps {
-  /** Total hasil pencarian dari server */
   totalResults: number;
-  /** Slug kategori terkunci jika berada di halaman kategori /categories/[category] */
   fixedCategorySlug?: string;
-  /** Nama kategori awal dari server untuk menghindari hydration mismatch */
   initialCategoryName?: string;
-  /** Apakah dropdown filter kategori disembunyikan */
-  hideCategoryFilter?: boolean;
-  /** Apakah chip filter kategori ditampilkan di baris active chips */
+  variant?: "search" | "category" | "subcategory";
   showCategoryChip?: boolean;
 }
 
@@ -25,7 +20,7 @@ export function GigFiltersToolbar({
   totalResults,
   fixedCategorySlug,
   initialCategoryName,
-  hideCategoryFilter = false,
+  variant = "search",
   showCategoryChip = true,
 }: GigFiltersToolbarProps) {
   const {
@@ -40,12 +35,15 @@ export function GigFiltersToolbar({
     removeFilterChip,
   } = useFilterParams({ fixedCategorySlug });
 
+  // Disembunyikan secara kontekstual jika sudah berada di hirarki sub-kategori
+  const shouldHideCategoryFilter = variant === "subcategory";
+
   return (
     <div className="space-y-4">
-      {/* BARIS 1: Dropdown Filters Toolbar */}
+      {/* BARIS 1: Context-Aware Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {!hideCategoryFilter && (
+          {!shouldHideCategoryFilter && (
             <CategoryFilterPopover
               selectedCategorySlug={categorySlug}
               initialCategoryName={initialCategoryName}
@@ -83,16 +81,16 @@ export function GigFiltersToolbar({
         maxPrice={maxPrice}
         proServices={proServices}
         selectedOptionIds={selectedOptionIds}
-        showCategoryChip={showCategoryChip}
+        showCategoryChip={showCategoryChip && variant === "search"}
         onRemove={removeFilterChip}
       />
 
-      {/* BARIS 3: Results Count & Sort Dropdown */}
+      {/* BARIS 3: Results Counter & Sorting Mechanism */}
       <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
         <span className="font-semibold">
           {totalResults > 0
-            ? `${totalResults.toLocaleString()}+ hasil`
-            : "0 hasil"}
+            ? `${totalResults.toLocaleString()} layanan ditemukan`
+            : "0 layanan ditemukan"}
         </span>
 
         <SortBySelect

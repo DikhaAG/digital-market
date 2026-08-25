@@ -1,13 +1,13 @@
-//src/app/(user)/categories/[category]/[subcategory]/page.tsx
+// src/app/(user)/categories/[category]/[subcategory]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import Script from "next/script";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
 import { Badge } from "@/components/ui/badge";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { GigCard } from "@/components/gigs/GigCard";
+import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 
 interface SubcategoryPageProps {
   params: Promise<{ category: string; subcategory: string }>;
@@ -30,12 +30,12 @@ export async function generateMetadata({
   });
 
   if (!subcategoryData) {
-    return { title: "Subcategory Not Found | Fiverr Clone" };
+    return { title: "Subcategory Not Found | Freelance Marketplace" };
   }
 
   return {
-    title: `${subcategoryData.name} Services | Fiverr Clone`,
-    description: `Temukan jasa freelance ${subcategoryData.name} profesional terbaik.`,
+    title: `Jasa ${subcategoryData.name} Terbaik | Marketplace`,
+    description: `Temukan jasa freelance ${subcategoryData.name} profesional terverifikasi untuk mendukung proyek Anda.`,
   };
 }
 
@@ -54,6 +54,7 @@ export default async function SubcategoryPage({
 
   const trpc = await trpcServer();
 
+  // Parallel Fetching untuk Kategori Induk, Sub-Kategori, dan Item Gig
   const [parentCategory, subcategoryData, gigsResponse] = await Promise.all([
     trpc.category.getBySlug({ slug: parentCategorySlug }),
     trpc.category.getBySlug({ slug: subcategorySlug }),
@@ -68,7 +69,7 @@ export default async function SubcategoryPage({
     }),
   ]);
 
-  // Validasi Keberadaan dan Induk Kategori
+  // Validasi Hirarki Domain (Memastikan Sub-kategori adalah Anak dari Induk Kategori)
   if (
     !subcategoryData ||
     !parentCategory ||
@@ -112,36 +113,21 @@ export default async function SubcategoryPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Subcategory Specific Hero Section */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-card to-background text-foreground p-6 sm:p-10 border border-primary/15 shadow-xs">
           <div className="relative z-10 max-w-3xl space-y-4">
-            <nav aria-label="Breadcrumb">
-              <ol className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <li>
-                  <Link
-                    href="/"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Home
-                  </Link>
-                </li>
-                <ChevronRight className="h-3.5 w-3.5 opacity-50" />
-                <li>
-                  <Link
-                    href={`/categories/${parentCategory.slug}`}
-                    className="hover:text-foreground transition-colors"
-                  >
-                    {parentCategory.name}
-                  </Link>
-                </li>
-                <ChevronRight className="h-3.5 w-3.5 opacity-50" />
-                <li
-                  className="text-primary font-semibold truncate"
-                  aria-current="page"
-                >
-                  {subcategoryData.name}
-                </li>
-              </ol>
-            </nav>
+            {/* Unified Breadcrumb Component */}
+            <CategoryBreadcrumbs
+              items={[
+                {
+                  label: parentCategory.name,
+                  href: `/categories/${parentCategory.slug}`,
+                },
+                {
+                  label: subcategoryData.name,
+                },
+              ]}
+            />
 
             <div className="space-y-2">
               <Badge
@@ -149,7 +135,7 @@ export default async function SubcategoryPage({
                 className="border-primary/25 bg-primary/10 text-primary backdrop-blur-md px-3 py-1 text-xs font-medium gap-1.5 rounded-full"
               >
                 <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                Sub-Kategori Spesialis
+                Sub-spesialisasi Terverifikasi
               </Badge>
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
                 {subcategoryData.name}
@@ -158,13 +144,16 @@ export default async function SubcategoryPage({
           </div>
         </section>
 
+        {/* Toolbar Filter & Grid Katalog */}
         <div className="space-y-6">
           <GigFiltersToolbar
             totalResults={pagination.total}
             fixedCategorySlug={subcategorySlug}
             initialCategoryName={`${parentCategory.name} > ${subcategoryData.name}`}
+            variant="subcategory"
             showCategoryChip={false}
           />
+
           {items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
               {items.map((item) => (
@@ -183,7 +172,7 @@ export default async function SubcategoryPage({
                 Belum Ada Layanan pada Sub-Kategori Ini
               </h4>
               <p className="text-xs text-muted-foreground mt-1">
-                Coba kembali ke halaman kategori utama atau ubah kriteria
+                Coba kembali ke halaman kategori utama atau sesuaikan kriteria
                 pencarian Anda.
               </p>
             </div>
