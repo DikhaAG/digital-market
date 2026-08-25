@@ -1,3 +1,4 @@
+//src/app/(user)/categories/[category]/error.tsx
 "use client";
 
 import { useEffect } from "react";

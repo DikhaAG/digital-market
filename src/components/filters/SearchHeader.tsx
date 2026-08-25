@@ -1,3 +1,4 @@
+//src/components/filters/SearchHeader.tsx
 interface SearchHeaderProps {
   query?: string;
 }

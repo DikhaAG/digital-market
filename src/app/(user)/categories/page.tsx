@@ -1,3 +1,4 @@
+//src/app/(user)/categories/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Layers } from "lucide-react";

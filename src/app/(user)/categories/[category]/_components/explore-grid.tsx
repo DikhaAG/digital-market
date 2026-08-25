@@ -1,3 +1,4 @@
+//src/app/(user)/categories/[category]/_components/explore-grid.tsx
 import Link from "next/link";
 import { ArrowRight, Layers } from "lucide-react";
 

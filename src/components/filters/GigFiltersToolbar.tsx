@@ -1,3 +1,4 @@
+//src/components/filters/GigFiltersToolbar.tsx
 "use client";
 
 import { CategoryFilterPopover } from "./CategoryFilterPopover";

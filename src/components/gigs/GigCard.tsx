@@ -1,3 +1,4 @@
+//src/components/gigs/GigCard.tsx
 import Link from "next/link";
 import Image from "next/image";
 import type { inferRouterOutputs } from "@trpc/server";

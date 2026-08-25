@@ -1,3 +1,4 @@
+//src/app/(user)/categories/[category]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";

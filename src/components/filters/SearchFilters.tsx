@@ -1,3 +1,4 @@
+//src/components/filters/SearchFilters.tsx
 "use client";
 
 import { useFilterParams } from "./hooks/useFilterParams";

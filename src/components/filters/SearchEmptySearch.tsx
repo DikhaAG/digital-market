@@ -1,3 +1,4 @@
+//src/components/filters/SearchEmptySearch.tsx
 interface SearchEmptyStateProps {
   query?: string;
 }

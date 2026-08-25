@@ -1,3 +1,4 @@
+//src/app/(user)/categories/[category]/_components/popular-keywords.tsx
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";

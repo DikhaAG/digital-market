@@ -1,3 +1,4 @@
+//src/app/(user)/categories/[category]/_components/hero.tsx
 import Link from "next/link";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
