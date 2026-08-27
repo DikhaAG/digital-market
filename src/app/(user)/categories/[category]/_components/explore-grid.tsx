@@ -22,17 +22,6 @@ export function ExploreGrid({
   return (
     <section className="space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Jelajahi {categoryName}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cari layanan berdasarkan sub-kategori untuk menemukan spesialisasi
-            yang Anda butuhkan
-          </p>
-        </div>
-      </div>
 
       {/* Dynamic Subcategories Grid */}
       {subcategories.length > 0 ? (
