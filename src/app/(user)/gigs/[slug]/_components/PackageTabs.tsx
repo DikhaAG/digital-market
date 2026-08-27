@@ -9,7 +9,6 @@ import {
   RotateCcw,
   Check,
   MessageCircle,
-  HelpCircle,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -180,7 +179,7 @@ export function PackageTabs({
             className="w-full h-11 font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs transition-all gap-2"
           >
             <MessageCircle className="h-4 w-4 fill-white shrink-0" />
-            <span>Pesan via WhatsApp (${selectedPackage.price})</span>
+            <span>Pesan via WhatsApp </span>
             <ExternalLink className="h-3.5 w-3.5 opacity-80" />
           </Button>
 
