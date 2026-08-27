@@ -1,3 +1,4 @@
+//src/components/BrandLogo.tsx
 import Link from "next/link";
 
 export function BrandLogo() {

@@ -1,3 +1,4 @@
+//src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";

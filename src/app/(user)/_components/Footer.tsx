@@ -1,9 +1,10 @@
+//src/app/(user)/_components/Footer.tsx
 "use client";
 
 import Link from "next/link";
-import { Globe, Accessibility } from "lucide-react";
+// import { Globe, Accessibility } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -87,7 +88,7 @@ export function UserFooter({ sections }: UserFooterProps) {
             <span>© Fiverr International Ltd. 2026</span>
           </div>
 
-          {/* Regional & Accessibility Preferences */}
+          {/* Regional & Accessibility Preferences 
           <div className="flex items-center justify-center gap-3 font-semibold">
             <Button
               variant="ghost"
@@ -115,6 +116,7 @@ export function UserFooter({ sections }: UserFooterProps) {
               <Accessibility className="h-4 w-4" />
             </Button>
           </div>
+          */}
         </div>
       </div>
     </footer>
