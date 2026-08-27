@@ -1,3 +1,4 @@
+// src/app/admin/gigs/_components/dialogs/tabs/gig-overview-tab.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,7 +11,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { MarkdownTextarea } from "@/components/ui/markdown-textarea";
 import {
   Link2,
   Lock,
@@ -390,7 +391,7 @@ export function GigOverviewTab({
         />
       </div>
 
-      {/* SECTION 4: Deskripsi Detail */}
+      {/* SECTION 4: Deskripsi Detail (Markdown Editor) */}
       <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-card/40 space-y-3">
         <FormField
           control={form.control}
@@ -412,12 +413,12 @@ export function GigOverviewTab({
                 </span>
               </div>
               <FormControl>
-                <Textarea
-                  placeholder="Jelaskan detail keahlian, alur pengerjaan, dan keunggulan jasa ini..."
-                  className="min-h-30 text-xs resize-y transition-all focus-visible:ring-1"
-                  disabled={isPending}
-                  {...field}
+                <MarkdownTextarea
                   value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="Jelaskan detail keahlian, alur pengerjaan, dan keunggulan jasa ini menggunakan format Markdown..."
+                  disabled={isPending}
+                  minHeight="min-h-52"
                 />
               </FormControl>
               <FormMessage />
