@@ -82,6 +82,7 @@ export default async function GigDetailPage({ params }: PageProps) {
               {gig.title}
             </h1>
 
+            {/**
             <div className="flex items-center gap-3 pt-2">
               <Avatar className="h-12 w-12 border border-border">
                 <AvatarImage src={seller.image ?? ""} alt={seller.name} />
@@ -111,6 +112,7 @@ export default async function GigDetailPage({ params }: PageProps) {
                 </div>
               </div>
             </div>
+            **/}
           </div>
 
           <div className="relative aspect-16/10 w-full rounded-2xl overflow-hidden bg-muted border border-border shadow-sm">
@@ -139,6 +141,7 @@ export default async function GigDetailPage({ params }: PageProps) {
             </div>
           </section>
 
+          {/**
           <section className="space-y-4 p-6 rounded-2xl border border-border bg-card">
             <h2 className="text-lg font-bold text-foreground">
               Tentang Penjual
@@ -166,6 +169,7 @@ export default async function GigDetailPage({ params }: PageProps) {
               </div>
             </div>
           </section>
+          **/}
         </div>
 
         <div className="lg:col-span-4">
