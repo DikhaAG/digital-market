@@ -47,7 +47,34 @@ export default async function GigDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const { seller, category, packages } = gig;
+  const { seller, category, packages, gigAttributes } = gig;
+
+  // --------------------------------------------------------------------------
+  // 1. OLAHKAN ATRIBUT (gigAttributeOptions) BERDASARKAN INDUK ATRIBUT
+  // --------------------------------------------------------------------------
+  const attributeMap = new Map<string, string[]>();
+
+  gigAttributes?.forEach((ga) => {
+    const attrName = ga.option?.attribute?.name;
+    const optionLabel = ga.option?.label;
+
+    if (attrName && optionLabel) {
+      const existing = attributeMap.get(attrName) || [];
+      attributeMap.set(attrName, [...existing, optionLabel]);
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // 2. AMBIL FITUR UTAMA PAKET DARI gigPackageFeatureValues (OPSIONAL / PELENGKAP)
+  // --------------------------------------------------------------------------
+  const includedPackageFeatures = new Set<string>();
+  packages?.forEach((pkg) => {
+    pkg.featureValues?.forEach((fv) => {
+      if (fv.isIncluded && fv.feature?.name) {
+        includedPackageFeatures.add(fv.feature.name);
+      }
+    });
+  });
 
   const breadcrumbItems = [
     ...(category.parent
@@ -110,6 +137,26 @@ export default async function GigDetailPage({ params }: PageProps) {
               </ReactMarkdown>
             </div>
           </section>
+
+          {/* SECTION METADATA / ATRIBUT GIG (Sesuai Tampilan Gambar) */}
+          {attributeMap.size > 0 && (
+            <section className="pt-8 border-t border-border/80">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                {Array.from(attributeMap.entries()).map(
+                  ([attrName, options]) => (
+                    <div key={attrName} className="space-y-1.5">
+                      <h3 className="text-sm font-normal text-muted-foreground">
+                        {attrName}
+                      </h3>
+                      <p className="text-sm font-medium text-foreground leading-relaxed">
+                        {options.join(", ")}
+                      </p>
+                    </div>
+                  ),
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="lg:col-span-4">

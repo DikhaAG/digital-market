@@ -121,6 +121,16 @@ export const gigRouter = router({
               parent: true,
             },
           },
+          // 🔹 FETCH ATRIBUT KUSTOM GIG
+          gigAttributes: {
+            with: {
+              option: {
+                with: {
+                  attribute: true,
+                },
+              },
+            },
+          },
           packages: {
             with: {
               featureValues: {
@@ -135,7 +145,6 @@ export const gigRouter = router({
 
       return gig ?? null;
     }),
-
   search: publicProcedure
     .input(searchGigsInputSchema)
     .query(async ({ input }) => {
