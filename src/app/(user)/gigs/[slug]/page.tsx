@@ -2,10 +2,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Star, ShieldCheck, User as UserIcon } from "lucide-react";
+// import { Star, ShieldCheck, User as UserIcon } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { Badge } from "@/components/ui/badge";
 import { PackageTabs } from "./_components/PackageTabs";
 import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 
