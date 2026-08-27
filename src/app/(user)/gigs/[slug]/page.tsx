@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Check } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
 import { PackageTabs } from "./_components/PackageTabs";
 import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
+import { cn } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{
@@ -65,16 +67,51 @@ export default async function GigDetailPage({ params }: PageProps) {
   });
 
   // --------------------------------------------------------------------------
-  // 2. AMBIL FITUR UTAMA PAKET DARI gigPackageFeatureValues (OPSIONAL / PELENGKAP)
+  // 2. MENGURUTKAN DAN MENSTRUKTURKAN PAKET (Basic -> Standard -> Premium)
   // --------------------------------------------------------------------------
-  const includedPackageFeatures = new Set<string>();
+  const packageOrder = ["basic", "standard", "premium"] as const;
+  const sortedPackages = packageOrder
+    .map((type) => packages?.find((p) => p.packageType.toLowerCase() === type))
+    .filter(Boolean) as typeof packages;
+
+  // --------------------------------------------------------------------------
+  // 3. OLAHKAN DAFTAR FITUR PAKET DARI gigPackageFeatureValues
+  // --------------------------------------------------------------------------
+  const featureMap = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      type: "boolean" | "text" | "number";
+      values: Record<
+        string,
+        { isIncluded: boolean | null; value: string | null }
+      >;
+    }
+  >();
+
   packages?.forEach((pkg) => {
     pkg.featureValues?.forEach((fv) => {
-      if (fv.isIncluded && fv.feature?.name) {
-        includedPackageFeatures.add(fv.feature.name);
+      if (!fv.feature) return;
+
+      if (!featureMap.has(fv.feature.id)) {
+        featureMap.set(fv.feature.id, {
+          id: fv.feature.id,
+          name: fv.feature.name,
+          type: fv.feature.type,
+          values: {},
+        });
       }
+
+      const feat = featureMap.get(fv.feature.id)!;
+      feat.values[pkg.packageType.toLowerCase()] = {
+        isIncluded: fv.isIncluded,
+        value: fv.value,
+      };
     });
   });
+
+  const packageFeaturesList = Array.from(featureMap.values());
 
   const breadcrumbItems = [
     ...(category.parent
@@ -138,7 +175,7 @@ export default async function GigDetailPage({ params }: PageProps) {
             </div>
           </section>
 
-          {/* SECTION METADATA / ATRIBUT GIG (Sesuai Tampilan Gambar) */}
+          {/* SECTION METADATA / ATRIBUT GIG */}
           {attributeMap.size > 0 && (
             <section className="pt-8 border-t border-border/80">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -154,6 +191,114 @@ export default async function GigDetailPage({ params }: PageProps) {
                     </div>
                   ),
                 )}
+              </div>
+            </section>
+          )}
+
+          {/* SECTION COMPARE PACKAGES (Sesuai Tampilan Gambar) */}
+          {sortedPackages.length > 0 && (
+            <section className="pt-8 border-t border-border/80 space-y-6">
+              <h2 className="text-xl font-extrabold text-foreground tracking-tight">
+                Compare packages
+              </h2>
+
+              <div className="overflow-x-auto rounded-2xl border border-border/80 bg-background shadow-xs no-scrollbar">
+                <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border/80">
+                      <th className="w-1/4 p-4 align-top font-normal text-muted-foreground text-xs uppercase tracking-wider">
+                        Package
+                      </th>
+                      {sortedPackages.map((pkg) => (
+                        <th
+                          key={pkg.id}
+                          className="w-1/4 p-4 align-top space-y-2 border-l border-border/60"
+                        >
+                          <div className="text-xl font-bold text-foreground">
+                            ${pkg.price.toLocaleString("en-US")}
+                          </div>
+                          <div className="text-base font-bold text-foreground capitalize">
+                            {pkg.title || pkg.packageType}
+                          </div>
+                          {pkg.description && (
+                            <p className="text-xs font-normal text-muted-foreground leading-relaxed">
+                              {pkg.description}
+                            </p>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* BARIS FITUR DINAMIS DARI CATEGORY PACKAGE FEATURES */}
+                    {packageFeaturesList.map((feature, idx) => (
+                      <tr
+                        key={feature.id}
+                        className={cn(
+                          "border-b border-border/40 transition-colors",
+                          idx % 2 === 1 && "bg-muted/20",
+                        )}
+                      >
+                        <td className="p-4 font-normal text-muted-foreground text-xs sm:text-sm">
+                          {feature.name}
+                        </td>
+                        {sortedPackages.map((pkg) => {
+                          const pType = pkg.packageType.toLowerCase();
+                          const valData = feature.values[pType];
+
+                          return (
+                            <td
+                              key={pkg.id}
+                              className="p-4 border-l border-border/60 align-middle text-center sm:text-left"
+                            >
+                              {feature.type === "boolean" ? (
+                                valData?.isIncluded ? (
+                                  <Check className="h-5 w-5 text-foreground inline-block" />
+                                ) : (
+                                  <Check className="h-5 w-5 text-muted-foreground/20 inline-block" />
+                                )
+                              ) : (
+                                <span className="text-xs sm:text-sm font-semibold text-foreground">
+                                  {valData?.value || "-"}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+
+                    {/* BARIS REVISI */}
+                    <tr className="border-b border-border/40 bg-muted/10">
+                      <td className="p-4 font-normal text-muted-foreground text-xs sm:text-sm">
+                        Revisions
+                      </td>
+                      {sortedPackages.map((pkg) => (
+                        <td
+                          key={pkg.id}
+                          className="p-4 border-l border-border/60 text-xs sm:text-sm font-semibold text-foreground"
+                        >
+                          {pkg.revisions >= 99 ? "Unlimited" : pkg.revisions}
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* BARIS WAKTU PENGIRIMAN */}
+                    <tr>
+                      <td className="p-4 font-normal text-muted-foreground text-xs sm:text-sm">
+                        Delivery Time
+                      </td>
+                      {sortedPackages.map((pkg) => (
+                        <td
+                          key={pkg.id}
+                          className="p-4 border-l border-border/60 text-xs sm:text-sm font-semibold text-foreground"
+                        >
+                          {pkg.deliveryTimeDays} days
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
           )}
