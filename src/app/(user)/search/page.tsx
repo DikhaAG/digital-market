@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+// src/app/(user)/search/page.tsx
 import { trpcServer } from "@/lib/trpc/server";
 import { GigCard } from "@/components/gigs/GigCard";
 import { SearchEmptyState } from "@/components/filters/SearchEmptySearch";
@@ -17,16 +17,6 @@ interface SearchPageProps {
   }>;
 }
 
-export async function generateMetadata({
-  searchParams,
-}: SearchPageProps): Promise<Metadata> {
-  const { q } = await searchParams;
-  return {
-    title: q ? `Hasil Pencarian untuk "${q}" | Fiverr Clone` : "Cari Layanan",
-    description: "Temukan jasa freelance terbaik untuk kebutuhan proyek Anda.",
-  };
-}
-
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q, categorySlug, minPrice, maxPrice, sortBy, options, page } =
     await searchParams;
@@ -37,7 +27,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ? categorySlug.trim()
       : undefined;
 
-  // Formatting opsi atribut dari URL (comma separated string -> array string)
   const attributeOptionIds = options
     ? options.split(",").filter(Boolean)
     : undefined;
@@ -49,7 +38,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     sortBy,
-    attributeOptionIds, // 👈 Teruskan parameter ke tRPC Server
+    attributeOptionIds,
     page: currentPage,
     limit: 12,
   });
@@ -57,7 +46,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <SearchHeader query={q} />
-      <GigFiltersToolbar totalResults={pagination.total} />
+      <GigFiltersToolbar totalResults={pagination.total} variant="search" />
 
       {items.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">

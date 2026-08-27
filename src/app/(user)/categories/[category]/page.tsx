@@ -1,7 +1,6 @@
-//src/app/(user)/categories/[category]/page.tsx
+// src/app/(user)/categories/[category]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Script from "next/script";
 import { trpcServer } from "@/lib/trpc/server";
 import { ExploreGrid } from "./_components/explore-grid";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
@@ -33,10 +32,6 @@ export async function generateMetadata({
   return {
     title: `${categoryData.name} Services | Freelance Marketplace`,
     description: `Temukan talenta freelance terbaik di bidang ${categoryData.name}. Kerjakan proyek Anda bersama profesional terverifikasi.`,
-    openGraph: {
-      title: `${categoryData.name} Services | Freelance Marketplace`,
-      description: `Temukan talenta freelance terbaik di bidang ${categoryData.name}.`,
-    },
   };
 }
 
@@ -73,91 +68,60 @@ export default async function CategoryPage({
 
   const { items, pagination } = gigsResponse;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: categoryData.name,
-        item: `${process.env.NEXT_PUBLIC_APP_URL}/categories/${categoryData.slug}`,
-      },
-    ],
-  };
-
   return (
-    <>
-      <Script
-        id="category-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    <div className="container mx-auto px-4 py-6 space-y-8">
+      <div className="space-y-3 pt-2">
+        <CategoryBreadcrumbs items={[{ label: categoryData.name }]} />
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+          {categoryData.name}
+        </h1>
+      </div>
+
+      <ExploreGrid
+        categoryName={categoryData.name}
+        categorySlug={categoryData.slug}
+        subcategories={categoryData.subcategories ?? []}
       />
-      <div className="container mx-auto px-4 py-6 space-y-8">
-        {/* Minimal Contextual Header (Hanya Breadcrumbs & Judul Kategori) */}
-        <div className="space-y-3 pt-2">
-          <CategoryBreadcrumbs items={[{ label: categoryData.name }]} />
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
-            {categoryData.name}
-          </h1>
+
+      <section className="space-y-6 pt-4 border-t border-border/60">
+        <div className="space-y-1">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            Semua Layanan di {categoryData.name}
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Gunakan filter di bawah untuk menemukan spesifikasi layanan yang
+            tepat
+          </p>
         </div>
 
-        {/* Sub-Kategori Explore Grid */}
-        <ExploreGrid
-          categoryName={categoryData.name}
-          categorySlug={categoryData.slug}
-          subcategories={categoryData.subcategories ?? []}
+        <GigFiltersToolbar
+          totalResults={pagination.total}
+          fixedCategorySlug={categorySlug}
+          initialCategoryName={categoryData.name}
+          variant="category"
+          showCategoryChip={false}
         />
 
-        {/* Section Katalog Layanan & Filter Toolbar */}
-        <section className="space-y-6 pt-4 border-t border-border/60">
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Semua Layanan di {categoryData.name}
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Gunakan filter di bawah untuk menemukan spesifikasi layanan yang
-              tepat
-            </p>
+        {items.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
+            {items.map((item) => (
+              <GigCard
+                key={item.id}
+                gig={{
+                  ...item,
+                  createdAt: item.createdAt.toISOString(),
+                }}
+              />
+            ))}
           </div>
-
-          <GigFiltersToolbar
-            totalResults={pagination.total}
-            fixedCategorySlug={categorySlug}
-            showCategoryChip={false}
-          />
-
-          {items.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
-              {items.map((item) => (
-                <GigCard
-                  key={item.id}
-                  gig={{
-                    ...item,
-                    createdAt: item.createdAt.toISOString(),
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-muted/20 my-6">
-              <h3 className="text-base font-bold text-foreground">
-                Belum Ada Layanan Tersedia
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Coba sesuaikan filter atau rentang budget Anda untuk melihat
-                hasil lainnya.
-              </p>
-            </div>
-          )}
-        </section>
-      </div>
-    </>
+        ) : (
+          <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-muted/20 my-6">
+            <h3 className="text-base font-bold text-foreground">
+              Belum Ada Layanan Tersedia
+            </h3>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

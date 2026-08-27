@@ -35,8 +35,8 @@ export function GigFiltersToolbar({
     removeFilterChip,
   } = useFilterParams({ fixedCategorySlug });
 
-  // Disembunyikan secara kontekstual jika sudah berada di hirarki sub-kategori
   const shouldHideCategoryFilter = variant === "subcategory";
+  const popoverMode = variant === "search" ? "filter" : "navigate";
 
   return (
     <div className="space-y-4">
@@ -48,6 +48,7 @@ export function GigFiltersToolbar({
               selectedCategorySlug={categorySlug}
               initialCategoryName={initialCategoryName}
               isPending={isPending}
+              mode={popoverMode}
               onSelectCategory={(slug) => updateFilters({ categorySlug: slug })}
             />
           )}

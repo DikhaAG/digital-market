@@ -1,7 +1,8 @@
-//src/components/filters/CategoryFilterPopover.tsx
+// src/components/filters/CategoryFilterPopover.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Check, Layers } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 
@@ -18,16 +19,24 @@ interface CategoryFilterPopoverProps {
   selectedCategorySlug?: string;
   initialCategoryName?: string;
   isPending?: boolean;
-  onSelectCategory: (categorySlug: string | null) => void;
+  /**
+   * "filter" -> Mengubah URL Search Params (?categorySlug=...)
+   * "navigate" -> Redirect langsung ke rute /categories/[slug]
+   */
+  mode?: "filter" | "navigate";
+  onSelectCategory?: (categorySlug: string | null) => void;
 }
 
 export function CategoryFilterPopover({
   selectedCategorySlug,
   initialCategoryName,
-  isPending,
+  isPending: externalIsPending,
+  mode = "filter",
   onSelectCategory,
 }: CategoryFilterPopoverProps) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [isNavigating, startTransition] = useTransition();
 
   // Fetch daftar kategori dari tRPC (auto cached)
   const { data: categories, isLoading } =
@@ -52,10 +61,19 @@ export function CategoryFilterPopover({
   const displayCategoryName =
     selectedCategoryName ?? initialCategoryName ?? "Category";
 
-  const handleSelect = (slug: string | null) => {
+  const handleSelect = (slug: string | null, targetHref?: string) => {
     setOpen(false);
-    onSelectCategory(slug);
+
+    if (mode === "navigate" && targetHref) {
+      startTransition(() => {
+        router.push(targetHref);
+      });
+    } else {
+      onSelectCategory?.(slug);
+    }
   };
+
+  const isPending = externalIsPending || isNavigating;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -77,7 +95,7 @@ export function CategoryFilterPopover({
         }
       />
       <PopoverContent
-        className="w-80 p-2 max-h-96 overflow-y-auto no-scrollbar rounded-2xl"
+        className="w-80 p-2 max-h-96 overflow-y-auto no-scrollbar rounded-2xl z-60"
         align="start"
       >
         <div className="p-2 font-bold text-xs text-muted-foreground uppercase tracking-wider">
@@ -98,7 +116,7 @@ export function CategoryFilterPopover({
           <div className="space-y-1">
             <button
               type="button"
-              onClick={() => handleSelect(null)}
+              onClick={() => handleSelect(null, "/categories")}
               className={cn(
                 "w-full flex items-center justify-between text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-muted/70 transition-colors cursor-pointer",
                 !selectedCategorySlug && "bg-muted text-primary",
@@ -119,7 +137,12 @@ export function CategoryFilterPopover({
                 <div key={category.id} className="space-y-0.5">
                   <button
                     type="button"
-                    onClick={() => handleSelect(category.slug)}
+                    onClick={() =>
+                      handleSelect(
+                        category.slug,
+                        `/categories/${category.slug}`,
+                      )
+                    }
                     className={cn(
                       "w-full flex items-center justify-between text-left text-sm font-bold px-3 py-1.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer",
                       isParentSelected && "text-primary bg-primary/10",
@@ -142,7 +165,12 @@ export function CategoryFilterPopover({
                             <button
                               key={sub.id}
                               type="button"
-                              onClick={() => handleSelect(sub.slug)}
+                              onClick={() =>
+                                handleSelect(
+                                  sub.slug,
+                                  `/categories/${category.slug}/${sub.slug}`,
+                                )
+                              }
                               className={cn(
                                 "w-full flex items-center justify-between text-left text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground",
                                 isSubSelected &&
