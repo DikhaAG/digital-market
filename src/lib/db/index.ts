@@ -21,7 +21,7 @@ const client =
   globalForDb.conn ??
   postgres(process.env.SUPABASE_DATABASE_URL, {
     prepare: false, // Wajib false untuk Supabase Transaction Pooler (PgBouncer)
-    max: 10,
+    max: 1,
     idle_timeout: 30,
     connect_timeout: 30, // Ditingkatkan ke 30 detik untuk toleransi latensi jaringan
     ssl: "require", // Memastikan handshake SSL diizinkan oleh Supabase
