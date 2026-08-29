@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 import { TRPCProvider } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
@@ -53,6 +54,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <TRPCProvider>{children}</TRPCProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
