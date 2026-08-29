@@ -1,4 +1,5 @@
 // src/app/(user)/categories/[category]/page.tsx
+import { Suspense } from "react"; // 1. Import Suspense dari React
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { trpcServer } from "@/lib/trpc/server";
@@ -6,6 +7,7 @@ import { ExploreGrid } from "./_components/explore-grid";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { GigCard } from "@/components/gigs/GigCard";
 import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CategoryPageProps {
   params: Promise<{ category: string }>;
@@ -94,13 +96,16 @@ export default async function CategoryPage({
           </p>
         </div>
 
-        <GigFiltersToolbar
-          totalResults={pagination.total}
-          fixedCategorySlug={categorySlug}
-          initialCategoryName={categoryData.name}
-          variant="category"
-          showCategoryChip={false}
-        />
+        {/* 2. Bungkus GigFiltersToolbar dengan Suspense Boundary */}
+        <Suspense fallback={<Skeleton className="h-10 w-full rounded-xl" />}>
+          <GigFiltersToolbar
+            totalResults={pagination.total}
+            fixedCategorySlug={categorySlug}
+            initialCategoryName={categoryData.name}
+            variant="category"
+            showCategoryChip={false}
+          />
+        </Suspense>
 
         {items.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
