@@ -7,6 +7,9 @@ import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { SearchHeader } from "@/components/filters/SearchHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// ✅ Paksa rute pencarian menjadi Dynamic (SSR)
+export const dynamic = "force-dynamic";
+
 interface SearchPageProps {
   searchParams: Promise<{
     q?: string;
@@ -47,9 +50,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      <SearchHeader query={q} />
+      <Suspense fallback={<Skeleton className="h-8 w-48 rounded-lg" />}>
+        <SearchHeader query={q} />
+      </Suspense>
 
-      {/* Bungkus GigFiltersToolbar yang membaca searchParams dengan Suspense */}
       <Suspense fallback={<Skeleton className="h-10 w-full rounded-xl" />}>
         <GigFiltersToolbar totalResults={pagination.total} variant="search" />
       </Suspense>
