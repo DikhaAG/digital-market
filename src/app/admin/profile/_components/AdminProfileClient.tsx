@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -12,18 +12,19 @@ import {
   ShieldCheck,
   Store,
   Calendar,
-  KeyRound,
   Loader2,
   Save,
   CheckCircle2,
   AlertCircle,
+  Phone,
+  MessageSquare,
 } from "lucide-react";
-
 import {
   updateProfileSchema,
   type UpdateProfileValues,
 } from "@/lib/validations/profile";
 import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,18 +46,23 @@ interface AdminProfileClientProps {
     image?: string | null;
     createdAt?: string | Date;
   };
+  initialAdminPhone: string;
 }
 
-export function AdminProfileClient({ user }: AdminProfileClientProps) {
+export function AdminProfileClient({
+  user,
+  initialAdminPhone,
+}: AdminProfileClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adminPhone, setAdminPhone] = useState(initialAdminPhone);
   const isSuperAdmin = user.role === "super_admin";
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<UpdateProfileValues>({
     resolver: zodResolver(updateProfileSchema),
@@ -66,31 +72,52 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
     },
   });
 
-  const currentImageUrl = watch("image");
+  // Gunakan useWatch alih-alih watch() dari useForm agar aman bagi React Compiler
+  const currentImageUrl = useWatch({
+    control,
+    name: "image",
+  });
+
+  const utils = trpc.useUtils();
+
+  const updateContactMutation = trpc.admin.updateAdminContact.useMutation({
+    onSuccess: (data) => {
+      toast.success("Nomor WhatsApp Admin berhasil diperbarui");
+      setAdminPhone(data.whatsappNumber);
+      utils.admin.getAdminContact.invalidate();
+      router.refresh();
+    },
+    onError: (err) =>
+      toast.error(err.message || "Gagal memperbarui nomor WhatsApp"),
+  });
 
   const onSubmit = async (values: UpdateProfileValues) => {
     try {
       setIsSubmitting(true);
-
-      // Eksekusi pembaruan profil pengguna via Better-Auth Client API
       const { error } = await authClient.updateUser({
         name: values.name,
         image: values.image || undefined,
       });
 
-      if (error) {
-        throw new Error(error.message || "Gagal memperbarui profil");
-      }
+      if (error) throw new Error(error.message || "Gagal memperbarui profil");
 
       toast.success("Profil berhasil diperbarui");
       router.refresh();
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Terjadi kesalahan sistem";
-      toast.error(msg);
+      toast.error(
+        error instanceof Error ? error.message : "Terjadi kesalahan sistem",
+      );
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSaveContact = () => {
+    if (!adminPhone.trim()) {
+      toast.error("Nomor WhatsApp tidak boleh kosong");
+      return;
+    }
+    updateContactMutation.mutate({ whatsappNumber: adminPhone });
   };
 
   const formattedDate = user.createdAt
@@ -110,8 +137,8 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
             Profil Pengelola
           </h1>
           <p className="text-xs text-muted-foreground">
-            Kelola identitas personal, foto profil, dan kredensial akun
-            marketplace Anda.
+            Kelola identitas personal, foto profil, dan jalur komunikasi
+            pemesanan.
           </p>
         </div>
         <span
@@ -135,18 +162,17 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Kolom Kiri: Foto Profil CDN & Quick Status */}
-        <Card className="border-border/80 shadow-sm md:col-span-1">
+        <Card className="border-border/80 shadow-xs md:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              Foto Profil
+              <User className="h-4 w-4 text-primary" /> Foto Profil
             </CardTitle>
             <CardDescription className="text-xs">
               Foto ini akan ditampilkan di sidebar dan audit aktivitas.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-4">
-            <div className="w-full max-w-[200px]">
+            <div className="w-full max-w-50">
               <ImageUploader
                 value={currentImageUrl}
                 onChange={(url) =>
@@ -157,7 +183,6 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
                 disabled={isSubmitting}
               />
             </div>
-
             <div className="w-full space-y-2 rounded-lg bg-muted/40 p-3 text-xs">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -178,20 +203,20 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
           </CardContent>
         </Card>
 
-        {/* Kolom Kanan: Form Data Profil & Informasi Kredensial */}
+        {/* Kolom Kanan: Form Data Profil & WhatsApp Integration */}
         <div className="space-y-6 md:col-span-2">
+          {/* Card 1: Informasi Personal */}
           <form onSubmit={handleSubmit(onSubmit)}>
-            <Card className="border-border/80 shadow-sm">
+            <Card className="border-border/80 shadow-xs">
               <CardHeader>
                 <CardTitle className="text-sm font-bold">
                   Informasi Personal
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Perbarui nama lengkap dan detail profil Anda.
+                  Perbarui nama lengkap dan akun Anda.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Input Nama Lengkap */}
                 <div className="space-y-1.5">
                   <Label htmlFor="name" className="text-xs font-semibold">
                     Nama Lengkap
@@ -212,10 +237,9 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
                   )}
                 </div>
 
-                {/* Field Email (Read Only) */}
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs font-semibold">
-                    Alamat Email (Akun Utama)
+                    Alamat Email
                   </Label>
                   <div className="relative">
                     <Input
@@ -226,30 +250,6 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
                       className="h-9 text-xs bg-muted/50 pl-8 text-muted-foreground cursor-not-allowed"
                     />
                     <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Email terikat dengan otentikasi akun dan tidak dapat diubah
-                    secara langsung.
-                  </p>
-                </div>
-
-                {/* Field Role & Scope System */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    Role Perizinan Sistem
-                  </Label>
-                  <div className="flex items-center justify-between rounded-md border p-3 bg-muted/20">
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-foreground">
-                        {isSuperAdmin ? "Super Admin" : "Admin (Seller)"}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        {isSuperAdmin
-                          ? "Akses penuh tata kelola marketplace, audit, dan manajemen pengelola."
-                          : "Akses kelola toko personal dan publikasi jasa (Gig)."}
-                      </p>
-                    </div>
-                    <KeyRound className="h-5 w-5 text-muted-foreground opacity-60 shrink-0" />
                   </div>
                 </div>
 
@@ -262,13 +262,12 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />{" "}
                         Menyimpan...
                       </>
                     ) : (
                       <>
-                        <Save className="h-3.5 w-3.5" />
-                        Simpan Perubahan
+                        <Save className="h-3.5 w-3.5" /> Simpan Identitas
                       </>
                     )}
                   </Button>
@@ -276,6 +275,67 @@ export function AdminProfileClient({ user }: AdminProfileClientProps) {
               </CardContent>
             </Card>
           </form>
+
+          {/* Card 2: Pengaturan WhatsApp Pemesanan Gig */}
+          <Card className="border-border/80 shadow-xs">
+            <CardHeader>
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-emerald-600" /> WhatsApp
+                Transaksi Layanan
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Nomor ini digunakan sebagai tujuan tombol order WhatsApp pada
+                halaman Gig publik.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="adminPhone" className="text-xs font-semibold">
+                  Nomor WhatsApp Admin (Aktif)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="adminPhone"
+                    type="tel"
+                    placeholder="Contoh: 6281234567890 atau 081234567890"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    disabled={updateContactMutation.isPending}
+                    className="h-9 text-xs pl-8 font-mono"
+                  />
+                  <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Format otomatis dikonversi ke format internasional tanpa
+                  spasi/tanda hubung.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end pt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSaveContact}
+                  disabled={
+                    updateContactMutation.isPending ||
+                    adminPhone === initialAdminPhone
+                  }
+                  className="h-9 gap-1.5 text-xs font-bold px-4 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  {updateContactMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />{" "}
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5" /> Perbarui WhatsApp
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

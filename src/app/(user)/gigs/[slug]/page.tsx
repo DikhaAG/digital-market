@@ -9,6 +9,7 @@ import { trpcServer } from "@/lib/trpc/server";
 import { PackageTabs } from "./_components/PackageTabs";
 import { CategoryBreadcrumbs } from "@/components/navigations/CategoryBreadcrumbs";
 import { cn } from "@/lib/utils";
+import { SettingsService } from "@/server/services/settings.service";
 
 interface PageProps {
   params: Promise<{
@@ -43,7 +44,10 @@ export async function generateMetadata({
 export default async function GigDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const trpc = await trpcServer();
-  const gig = await trpc.gig.getBySlug({ slug });
+  const [gig, adminContact] = await Promise.all([
+    trpc.gig.getBySlug({ slug }),
+    SettingsService.getAdminContactCached(),
+  ]);
 
   if (!gig || !gig.seller || !gig.category) {
     notFound();
@@ -305,7 +309,11 @@ export default async function GigDetailPage({ params }: PageProps) {
         </div>
 
         <div className="lg:col-span-4">
-          <PackageTabs packages={packages} sellerName={seller.name} />
+          <PackageTabs
+            packages={packages}
+            sellerName={seller.name}
+            adminPhoneNumber={adminContact.whatsappNumber}
+          />
         </div>
       </div>
     </div>

@@ -16,7 +16,66 @@ export interface SiteMetadataConfig {
   siteDescription: string;
 }
 
+export interface AdminContactConfig {
+  whatsappNumber: string;
+}
+
 export class SettingsService {
+  /**
+   * Sanitasi nomor WhatsApp ke format internasional standar wa.me (contoh: 62812xxx)
+   */
+  static formatWhatsAppNumber(phone: string): string {
+    let cleaned = phone.replace(/\D/g, "");
+    if (cleaned.startsWith("08")) {
+      cleaned = "628" + cleaned.slice(2);
+    }
+    return cleaned;
+  }
+  /**
+   * Mengambil nomor WhatsApp Admin ter-cache (Zero DB Overhead)
+   */
+  static getAdminContactCached = unstable_cache(
+    async (): Promise<AdminContactConfig> => {
+      const row = await db.query.siteSettings.findFirst({
+        where: {
+          key: "admin_whatsapp_number",
+        },
+      });
+
+      const rawNumber =
+        row?.value ||
+        process.env.NEXT_PUBLIC_ADMIN_WA_NUMBER ||
+        "6281234567890";
+      return {
+        whatsappNumber: SettingsService.formatWhatsAppNumber(rawNumber),
+      };
+    },
+    ["admin-contact-settings"],
+    {
+      tags: ["site-settings"],
+    },
+  );
+
+  /**
+   * Memperbarui nomor kontak admin dan invalidate cache secara instan
+   */
+  static async updateAdminContact(whatsappNumber: string) {
+    const formatted = SettingsService.formatWhatsAppNumber(whatsappNumber);
+
+    await db
+      .insert(siteSettings)
+      .values({
+        key: "admin_whatsapp_number",
+        value: formatted,
+      })
+      .onConflictDoUpdate({
+        target: siteSettings.key,
+        set: { value: formatted, updatedAt: new Date() },
+      });
+
+    (revalidateTag as unknown as (tag: string) => void)("site-settings");
+    return { success: true, whatsappNumber: formatted };
+  }
   /**
    * Mengambil konfigurasi SEO & Metadata Global dari database ter-cache.
    */

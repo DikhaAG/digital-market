@@ -25,6 +25,23 @@ export const adminRouter = router({
   // --------------------------------------------------------------------------
   // ADMIN & SUPER ADMIN SHARED PROCEDURES (DENGAN ISOLASI DATA STRICT)
   // --------------------------------------------------------------------------
+  getAdminContact: publicProcedure.query(async () => {
+    return await SettingsService.getAdminContactCached();
+  }),
+
+  updateAdminContact: adminProcedure
+    .input(
+      z.object({
+        whatsappNumber: z
+          .string()
+          .min(9, "Nomor WhatsApp minimal 9 digit")
+          .max(16, "Nomor WhatsApp maksimal 16 digit")
+          .regex(/^[0-9+ ]+$/, "Format nomor telepon tidak valid"),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await SettingsService.updateAdminContact(input.whatsappNumber);
+    }),
   getCategoryGigMeta: adminProcedure
     .input(
       z.object({ categoryId: z.string().min(1, "Category ID wajib diisi") }),

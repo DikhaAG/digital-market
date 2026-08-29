@@ -305,6 +305,7 @@ export const relations = defineRelations(
     packageFeatures,
     gigPackages,
     gigPackageFeatureValues,
+    siteSettings,
   },
   (r) => ({
     user: {

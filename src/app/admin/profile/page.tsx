@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminProfileClient } from "./_components/AdminProfileClient";
+import { SettingsService } from "@/server/services/settings.service";
 
 export default async function AdminProfilePage() {
   const session = await auth.api.getSession({
@@ -12,6 +13,9 @@ export default async function AdminProfilePage() {
   if (!session?.user) {
     redirect("/admin/login");
   }
+
+  // Fetch nomor WA admin secara SSR
+  const adminContact = await SettingsService.getAdminContactCached();
 
   return (
     <AdminProfileClient
@@ -23,6 +27,7 @@ export default async function AdminProfilePage() {
         image: session.user.image,
         createdAt: session.user.createdAt,
       }}
+      initialAdminPhone={adminContact.whatsappNumber}
     />
   );
 }
