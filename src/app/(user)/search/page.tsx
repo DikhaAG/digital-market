@@ -1,9 +1,11 @@
 // src/app/(user)/search/page.tsx
+import { Suspense } from "react";
 import { trpcServer } from "@/lib/trpc/server";
 import { GigCard } from "@/components/gigs/GigCard";
 import { SearchEmptyState } from "@/components/filters/SearchEmptySearch";
 import { GigFiltersToolbar } from "@/components/filters/GigFiltersToolbar";
 import { SearchHeader } from "@/components/filters/SearchHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -46,7 +48,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <SearchHeader query={q} />
-      <GigFiltersToolbar totalResults={pagination.total} variant="search" />
+
+      {/* Bungkus GigFiltersToolbar yang membaca searchParams dengan Suspense */}
+      <Suspense fallback={<Skeleton className="h-10 w-full rounded-xl" />}>
+        <GigFiltersToolbar totalResults={pagination.total} variant="search" />
+      </Suspense>
 
       {items.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
