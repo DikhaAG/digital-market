@@ -34,7 +34,7 @@ export class SettingsService {
         .where(inArray(siteSettings.key, keys));
 
       const map = new Map(rows.map((r) => [r.key, r.value ?? ""]));
-      const brandName = map.get("brand_logo_text") || "Fiverr Clone";
+      const brandName = map.get("brand_logo_text") || "";
 
       return {
         siteTitle: map.get("site_meta_title") || brandName,
@@ -70,7 +70,7 @@ export class SettingsService {
 
       return {
         logoType: (map.get("brand_logo_type") as "text" | "image") || "text",
-        logoText: map.get("brand_logo_text") || "fiverr",
+        logoText: map.get("brand_logo_text") || "",
         logoTextAccent: map.get("brand_logo_text_accent") || ".",
         logoImage: map.get("brand_logo_image") || "",
       };

@@ -99,7 +99,7 @@ export function UserFooter({ sections, brandLogo }: UserFooterProps) {
                 <span className="font-black text-2xl md:text-xl tracking-tight text-foreground">
                   {brandName}
                   <span className="text-primary">
-                    {brandLogo?.logoTextAccent ?? "."}
+                    {brandLogo?.logoTextAccent ?? ""}
                   </span>
                 </span>
               )}

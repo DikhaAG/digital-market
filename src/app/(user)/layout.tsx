@@ -42,21 +42,6 @@ export default async function UserLayout({
       title: "Categories",
       links: categoryLinks,
     },
-    {
-      title: "Company",
-      links: [
-        { label: "About Fiverr", href: "/about" },
-        { label: "Help Center", href: "/help" },
-        { label: "Terms of Service", href: "/terms" },
-        { label: "Privacy Policy", href: "/privacy" },
-        { label: "Partnerships", href: "/partnerships" },
-        { label: "Creator Network", href: "/creator-network" },
-        { label: "Affiliates", href: "/affiliates" },
-        { label: "Invite a Friend", href: "/referral" },
-        { label: "Press & News", href: "/press" },
-        { label: "Investor Relations", href: "/investors" },
-      ],
-    },
   ];
 
   return (

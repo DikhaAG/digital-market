@@ -96,12 +96,12 @@ export function PackageTabs({
     <div className="border border-border rounded-2xl bg-card shadow-sm overflow-hidden sticky top-24">
       {/* TAB SELECTOR */}
       <Tabs value={activeType} onValueChange={setActiveType} className="w-full">
-        <TabsList className="w-full grid grid-cols-3 h-12 bg-muted/50 p-1 rounded-none border-b border-border">
+        <TabsList className="w-full grid grid-cols-3 h-12 bg-muted/50 p-2 rounded-none border-b border-border">
           {sortedPackages.map((pkg) => (
             <TabsTrigger
               key={pkg.id}
               value={pkg.packageType}
-              className="capitalize text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary transition-all cursor-pointer"
+              className="capitalize text-xs rounded-lg font-bold data-[state=active]:bg-background data-[state=active]:text-primary transition-all cursor-pointer"
             >
               {pkg.packageType}
             </TabsTrigger>
