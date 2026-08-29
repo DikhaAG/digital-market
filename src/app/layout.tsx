@@ -1,10 +1,11 @@
-//src/app/layout.tsx
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TRPCProvider } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
+import { SettingsService } from "@/server/services/settings.service";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,10 +17,23 @@ const geistMono = Geist_Mono({
   variable: "--font-mono",
 });
 
-export const metadata: Metadata = {
-  title: "Fiverr Clone",
-  description: "Freelance Services Marketplace",
-};
+// ✅ Best Practice 2026: Dynamic Metadata Generator
+export async function generateMetadata(): Promise<Metadata> {
+  const siteMeta = await SettingsService.getSiteMetadataCached();
+
+  return {
+    title: {
+      default: siteMeta.siteTitle,
+      template: `%s | ${siteMeta.siteTitle}`, // Otomatis dipakai oleh halaman anak
+    },
+    description: siteMeta.siteDescription,
+    openGraph: {
+      title: siteMeta.siteTitle,
+      description: siteMeta.siteDescription,
+      type: "website",
+    },
+  };
+}
 
 export default function RootLayout({
   children,
@@ -36,11 +50,6 @@ export default function RootLayout({
         geistMono.variable,
       )}
     >
-      {/*
-        1. min-h-full & flex-col pada body memastikan tinggi aplikasi minimal 100% tinggi viewport.
-        2. bg-background & text-foreground dipasang di sini agar berlaku untuk seluruh halaman/layout (Auth, User, Admin, 404, dll).
-        3. font-sans dipasang di body agar otomatis diwariskan ke seluruh elemen anak.
-      */}
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <TRPCProvider>{children}</TRPCProvider>
         <Toaster />

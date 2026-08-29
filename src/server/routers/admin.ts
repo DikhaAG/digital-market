@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, adminProcedure, superAdminProcedure } from "@/lib/trpc/trpc";
+import {
+  router,
+  adminProcedure,
+  superAdminProcedure,
+  publicProcedure,
+} from "@/lib/trpc/trpc";
 import { db } from "@/lib/db";
 import {
   categories,
@@ -14,6 +19,7 @@ import {
 import { gigFormSchema } from "@/lib/validations/gig";
 import { AdminService } from "@/server/services/admin.service";
 import { updateCategorySchema } from "@/app/admin/categories/_schemas/category-admin.schema";
+import { SettingsService } from "../services/settings.service";
 
 export const adminRouter = router({
   // --------------------------------------------------------------------------
@@ -391,5 +397,21 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       await db.delete(categories).where(eq(categories.id, input.id));
       return { success: true };
+    }),
+  getBrandLogoSettings: publicProcedure.query(async () => {
+    return await SettingsService.getBrandLogoCached();
+  }),
+
+  updateBrandLogoSettings: adminProcedure
+    .input(
+      z.object({
+        logoType: z.enum(["text", "image"]),
+        logoText: z.string().min(1, "Nama logo tidak boleh kosong"),
+        logoTextAccent: z.string().optional().default(""),
+        logoImage: z.string().optional().default(""),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await SettingsService.updateBrandLogo(input);
     }),
 });

@@ -1,5 +1,14 @@
-CREATE TYPE "package_feature_type" AS ENUM('boolean', 'text', 'number');--> statement-breakpoint
-CREATE TYPE "package_type" AS ENUM('basic', 'standard', 'premium');--> statement-breakpoint
+DO $$ BEGIN
+    CREATE TYPE "package_feature_type" AS ENUM('boolean', 'text', 'number');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "package_type" AS ENUM('basic', 'standard', 'premium');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 CREATE TABLE "account" (
 	"id" text PRIMARY KEY,
 	"account_id" text NOT NULL,

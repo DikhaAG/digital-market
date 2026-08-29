@@ -14,6 +14,7 @@ import {
   UserRound,
   Store,
   ShieldCheck,
+  Settings,
 } from "lucide-react";
 
 import { NavMain, type NavItem } from "./NavMain";
@@ -60,6 +61,11 @@ const adminNavData: NavItem[] = [
     title: "Users & Sellers",
     url: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Pengaturan Logo",
+    url: "/admin/settings",
+    icon: Settings,
   },
 ];
 

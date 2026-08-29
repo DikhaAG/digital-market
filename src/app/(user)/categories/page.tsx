@@ -1,13 +1,24 @@
-//src/app/(user)/categories/page.tsx
+// src/app/(user)/categories/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Layers } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
+import { SettingsService } from "@/server/services/settings.service";
 
-export const metadata: Metadata = {
-  title: "Jelajahi Semua Kategori | Fiverr Clone",
-  description: "Temukan berbagai kategori layanan freelance digital terbaik.",
-};
+// ✅ Best Practice 2026: Dynamic Page Metadata
+export async function generateMetadata(): Promise<Metadata> {
+  const siteMeta = await SettingsService.getSiteMetadataCached();
+
+  return {
+    // Hasil render otomatis: "Jelajahi Semua Kategori | [Nama Brand Dinamis]"
+    title: "Jelajahi Semua Kategori",
+    description: `Temukan berbagai kategori layanan freelance digital terbaik di ${siteMeta.siteTitle}.`,
+    openGraph: {
+      title: `Jelajahi Semua Kategori | ${siteMeta.siteTitle}`,
+      description: `Temukan berbagai kategori layanan freelance digital terbaik di ${siteMeta.siteTitle}.`,
+    },
+  };
+}
 
 export default async function CategoriesIndexPage() {
   const trpc = await trpcServer();

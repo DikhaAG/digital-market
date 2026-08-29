@@ -1,8 +1,9 @@
+// src/app/(user)/_components/HomeNavbar.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // 1. Import hook usePathname
+import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,29 +13,27 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-
-import { BrandLogo } from "@/components/BrandLogo";
 import { NavbarSearchBar } from "./NavbarSearchBar";
 import { CategoryAccordion } from "./CategoryAccordion";
 
-export function HomeNavbar() {
+interface HomeNavbarProps {
+  logo: React.ReactNode; // Terima RSC sebagai Node
+}
+
+export function HomeNavbar({ logo }: HomeNavbarProps) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname(); // 2. Dapatkan pathname URL saat ini
-
-  // 3. Flag penanda jika user berada di Homepage ("/")
+  const pathname = usePathname();
   const isHomePage = pathname === "/";
-
   const closeSheet = () => setOpen(false);
 
   return (
     <nav className="w-full">
       <div className="container mx-auto px-4">
-        {/* ================= DESKTOP VIEW (md:flex) ================= */}
+        {/* DESKTOP VIEW */}
         <div className="hidden md:flex h-16 items-center justify-between gap-6 md:gap-8">
-          {/* 1. Logo Brand */}
-          <BrandLogo />
+          {/* Render RSC Prop */}
+          {logo}
 
-          {/* 2. SearchBar Tengah (Hanya tampil jika BUKAN di halaman beranda "/") */}
           {!isHomePage ? (
             <div className="flex-1 max-w-2xl">
               <NavbarSearchBar variant="desktop" />
@@ -43,21 +42,20 @@ export function HomeNavbar() {
             <div className="flex-1" />
           )}
 
-          {/* 3. CTA Action Button */}
           <div className="flex items-center gap-4 shrink-0">
             <Button
               nativeButton={false}
               render={<Link href="/order">Cek Pesanan</Link>}
               className="font-bold h-10 px-5 text-sm rounded-md"
-            ></Button>
+            />
           </div>
         </div>
 
-        {/* ================= MOBILE VIEW (md:hidden) ================= */}
+        {/* MOBILE VIEW */}
         <div className="flex flex-col md:hidden py-2.5 gap-3">
-          {/* Top Row: Logo di Kiri & Mobile Menu Trigger di Kanan */}
           <div className="flex items-center justify-between">
-            <BrandLogo />
+            {/* Render RSC Prop */}
+            {logo}
 
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger
@@ -71,8 +69,7 @@ export function HomeNavbar() {
                     <Menu className="h-6 w-6" />
                   </Button>
                 }
-              ></SheetTrigger>
-
+              />
               <SheetContent
                 side="right"
                 className="w-[300px] sm:w-[350px] p-0 flex flex-col"
@@ -82,13 +79,9 @@ export function HomeNavbar() {
                     Navigasi Menu
                   </SheetTitle>
                 </SheetHeader>
-
-                {/* Body Accordion Categories */}
                 <div className="flex-1 overflow-y-auto p-4 text-muted-foreground font-normal text-sm space-y-1">
                   <CategoryAccordion onLinkClick={closeSheet} />
                 </div>
-
-                {/* Footer Action Button */}
                 <div className="p-4 bg-background border-t border-border">
                   <Button
                     nativeButton={false}
@@ -98,13 +91,12 @@ export function HomeNavbar() {
                       </Link>
                     }
                     className="w-full font-bold h-11 text-base rounded-md"
-                  ></Button>
+                  />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
-          {/* Bottom Row: Mobile SearchBar (Hanya tampil jika BUKAN di halaman beranda "/") */}
           {!isHomePage && (
             <div>
               <NavbarSearchBar variant="mobile" />

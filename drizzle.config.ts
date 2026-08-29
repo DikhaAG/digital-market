@@ -7,6 +7,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.SUPABASE_DATABASE_URL!,
+    ssl: true,
   },
   schemaFilter: ["public"],
 });

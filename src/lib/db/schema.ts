@@ -279,6 +279,15 @@ export const gigPackageFeatureValues = pgTable(
   ],
 );
 
+export const siteSettings = pgTable("site_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 // ============================================================================
 // DRIZZLE RELATIONS (V2 API)
 // ============================================================================
