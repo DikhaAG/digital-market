@@ -5,12 +5,13 @@ import { ArrowRight, Layers } from "lucide-react";
 import { trpcServer } from "@/lib/trpc/server";
 import { SettingsService } from "@/server/services/settings.service";
 
-// ✅ Best Practice 2026: Dynamic Page Metadata
+// ✅ Paksa rute categories menjadi Dynamic (SSR) saat build
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const siteMeta = await SettingsService.getSiteMetadataCached();
 
   return {
-    // Hasil render otomatis: "Jelajahi Semua Kategori | [Nama Brand Dinamis]"
     title: "Jelajahi Semua Kategori",
     description: `Temukan berbagai kategori layanan freelance digital terbaik di ${siteMeta.siteTitle}.`,
     openGraph: {
