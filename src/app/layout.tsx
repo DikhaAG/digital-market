@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
@@ -8,24 +8,26 @@ import { TRPCProvider } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import { SettingsService } from "@/server/services/settings.service";
 
-const inter = Inter({
+// Inisialisasi Google Font Plus Jakarta Sans dengan CSS Variable `--font-sans`
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
 });
 
-// ✅ Best Practice 2026: Dynamic Metadata Generator
+// Best Practice: Dynamic Metadata Generator
 export async function generateMetadata(): Promise<Metadata> {
   const siteMeta = await SettingsService.getSiteMetadataCached();
-
   return {
     title: {
       default: siteMeta.siteTitle,
-      template: `%s | ${siteMeta.siteTitle}`, // Otomatis dipakai oleh halaman anak
+      template: `%s | ${siteMeta.siteTitle}`,
     },
     description: siteMeta.siteDescription,
     openGraph: {
@@ -47,7 +49,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(
         "h-full scroll-smooth antialiased",
-        inter.variable,
+        plusJakartaSans.variable,
         geistMono.variable,
       )}
     >
