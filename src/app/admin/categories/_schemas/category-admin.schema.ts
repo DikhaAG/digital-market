@@ -1,3 +1,4 @@
+// src/app/admin/categories/_schemas/category-admin.schema.ts
 import { z } from "zod";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/routers/_app";
@@ -24,7 +25,7 @@ export type AttributeItem = SubCategoryItem["attributes"][number];
 export type AttributeOptionItem = AttributeItem["options"][number];
 
 // ============================================================================
-// SCHEMAS
+// SCHEMAS (MODIFIED FOR ICON / IMAGE FALLBACK SUPPORT)
 // ============================================================================
 export const parentCategorySchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter" }),

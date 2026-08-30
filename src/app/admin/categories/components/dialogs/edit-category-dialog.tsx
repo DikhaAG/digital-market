@@ -1,3 +1,4 @@
+// src/app/admin/categories/components/dialogs/edit-category-dialog.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
