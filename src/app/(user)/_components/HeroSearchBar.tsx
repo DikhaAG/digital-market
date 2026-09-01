@@ -1,3 +1,4 @@
+// src/app/(user)/_components/HeroSearchBar.tsx
 "use client";
 
 import {
@@ -14,22 +15,20 @@ import Image from "next/image";
 import {
   ArrowUp,
   X,
-  Search,
-  Code2,
-  Palette,
-  Bot,
   Loader2,
   ArrowRight,
   Tag,
-  LucideIcon,
+  Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ==========================================
-// 1. TYPES & CONSTANTS
+// 1. TYPES
 // ==========================================
 interface SearchFormValues {
   q: string;
@@ -42,11 +41,6 @@ interface HeroSearchBarProps {
   onSearch?: (query: string) => void;
 }
 
-interface SuggestionChip {
-  label: string;
-  icon: LucideIcon;
-}
-
 interface GigSuggestion {
   id: string;
   slug: string;
@@ -55,12 +49,6 @@ interface GigSuggestion {
   startingPrice: number;
   category: { name: string };
 }
-
-const SUGGESTION_CHIPS: SuggestionChip[] = [
-  { label: "Fullstack Web Next.js", icon: Code2 },
-  { label: "Desain Logo & Branding", icon: Palette },
-  { label: "AI & Machine Learning Script", icon: Bot },
-];
 
 // ==========================================
 // 2. CUSTOM HOOKS
@@ -157,35 +145,65 @@ function HeroSearchActions({
   );
 }
 
+/**
+ * Dynamic Suggestion Chips Berdasarkan Data Gig (Database-Driven)
+ */
 interface SuggestionChipsProps {
-  chips: SuggestionChip[];
-  onSelectChip: (label: string) => void;
+  onSelectChip: (title: string) => void;
 }
 
-function SuggestionChips({ chips, onSelectChip }: SuggestionChipsProps) {
+function SuggestionChips({ onSelectChip }: SuggestionChipsProps) {
+  // Fetch 6 Gig relevan/terbaru langsung dari database via tRPC
+  const { data, isLoading } = trpc.gig.search.useQuery(
+    { limit: 6, sortBy: "relevance" },
+    {
+      staleTime: 1000 * 60 * 5, // Cache 5 menit
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const gigs = data?.items ?? [];
+
+  // Skeleton Loading State (Pill Shape) untuk Zero Cumulative Layout Shift (CLS)
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-0.5 relative z-10">
+        <span className="text-xs font-medium text-muted-foreground/80 shrink-0 flex items-center gap-1">
+          <Sparkles className="h-3 w-3 text-primary" /> Populer:
+        </span>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-6 w-28 rounded-full bg-muted/60 shrink-0"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (gigs.length === 0) return null;
+
   return (
     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-0.5 relative z-10">
       <span className="text-xs font-medium text-muted-foreground/80 shrink-0 flex items-center gap-1">
-        <Search className="h-3 w-3" /> Coba cari:
+        <Sparkles className="h-3 w-3 text-primary" /> Populer:
       </span>
-      {chips.map((chip) => {
-        const Icon = chip.icon;
-        return (
-          <button
-            key={chip.label}
-            type="button"
-            onClick={() => onSelectChip(chip.label)}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shrink-0",
-              "bg-card/60 hover:bg-card border border-border/60 hover:border-primary/40 text-foreground/80 hover:text-foreground",
-              "transition-all duration-200 hover:shadow-xs active:scale-95 cursor-pointer",
-            )}
-          >
-            <Icon className="h-3 w-3 text-primary/80" />
-            {chip.label}
-          </button>
-        );
-      })}
+      {gigs.map((gig) => (
+        <button
+          key={gig.id}
+          type="button"
+          onClick={() => onSelectChip(gig.title)}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shrink-0 max-w-[220px]",
+            "bg-card/60 hover:bg-card border border-border/60 hover:border-primary/40 text-foreground/80 hover:text-foreground",
+            "transition-all duration-200 hover:shadow-xs active:scale-95 cursor-pointer group",
+          )}
+          title={gig.title}
+        >
+          <Briefcase className="h-3 w-3 text-primary/80 shrink-0 group-hover:scale-110 transition-transform" />
+          <span className="truncate">{gig.title}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -265,7 +283,7 @@ function SearchSuggestionsPopover({
             onClick={onSubmitSearch}
             className="w-full p-3 bg-muted/30 hover:bg-muted text-xs font-semibold text-primary flex items-center justify-between transition-colors cursor-pointer"
           >
-            <span>Lihat semua hasil untuk &quot; {+debouncedQuery} &quot</span>
+            <span>Lihat semua hasil untuk &quot;{debouncedQuery}&quot;</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -275,9 +293,7 @@ function SearchSuggestionsPopover({
             Tidak ada layanan ditemukan
           </p>
           <p className="text-xs">
-            Coba gunakan kata kunci lain untuk &quote;
-            {debouncedQuery}
-            &quote;
+            Coba gunakan kata kunci lain untuk &quot;{debouncedQuery}&quot;
           </p>
         </div>
       )}
@@ -286,7 +302,7 @@ function SearchSuggestionsPopover({
 }
 
 // ==========================================
-// 4. MAIN SEARCHBAR COMPONENT (REACT HOOK FORM)
+// 4. MAIN SEARCHBAR COMPONENT
 // ==========================================
 export function HeroSearchBar({
   placeholder = "Tanyakan atau cari layanan/produk digital...",
@@ -359,8 +375,8 @@ export function HeroSearchBar({
   };
 
   // Click Suggestion Chip Handler
-  const handleChipClick = (label: string) => {
-    setValue("q", label);
+  const handleChipClick = (title: string) => {
+    setValue("q", title);
     setIsOpen(true);
     textareaRef.current?.focus();
   };
@@ -435,11 +451,8 @@ export function HeroSearchBar({
         />
       )}
 
-      {/* Suggestion Chips */}
-      <SuggestionChips
-        chips={SUGGESTION_CHIPS}
-        onSelectChip={handleChipClick}
-      />
+      {/* Dynamic Gig Suggestion Chips */}
+      <SuggestionChips onSelectChip={handleChipClick} />
     </div>
   );
 }
