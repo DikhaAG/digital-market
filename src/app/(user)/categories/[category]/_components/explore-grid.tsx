@@ -1,11 +1,13 @@
 //src/app/(user)/categories/[category]/_components/explore-grid.tsx
 import Link from "next/link";
 import { ArrowRight, Layers } from "lucide-react";
+import { DynamicLucideIcon } from "@/components/CategoryIcon";
 
 interface Subcategory {
   id: string;
   name: string;
   slug: string;
+  icon: string | null;
 }
 
 interface ExploreGridProps {
@@ -34,7 +36,7 @@ export function ExploreGrid({
             >
               <div className="space-y-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center transition-transform group-hover:scale-105">
-                  <Layers className="h-5 w-5" />
+                  <DynamicLucideIcon name={sub.icon} />
                 </div>
                 <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                   {sub.name}
