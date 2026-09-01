@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { slugify } from "../../_schemas/category-admin.schema";
+import { DynamicLucideIcon } from "@/components/CategoryIcon";
 
 interface CategoryFormFieldsProps<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>;
@@ -36,52 +37,6 @@ interface CategoryFormFieldsProps<TFieldValues extends FieldValues> {
   nameLabel?: string;
   namePlaceholder?: string;
 }
-
-/**
-  Helper Komponen: Resolver Icon Lucide secara dinamis dengan nama string (kebab-case / PascalCase)
- */
-function DynamicLucideIcon({
-  name,
-  className = "h-5 w-5",
-  fallback: FallbackIcon = Folder,
-}: {
-  name?: string | null;
-  className?: string;
-  fallback?: React.ComponentType<{ className?: string }>;
-}) {
-  const IconComponent = useMemo(() => {
-    if (!name || !name.trim()) return null;
-
-    const trimmed = name.trim();
-    // 1. Coba pencarian langsung
-    if (LucideIcons[trimmed as keyof typeof LucideIcons]) {
-      return LucideIcons[
-        trimmed as keyof typeof LucideIcons
-      ] as React.ComponentType<{ className?: string }>;
-    }
-
-    // 2. Format dari kebab-case (misal: "shopping-bag") ke PascalCase ("ShoppingBag")
-    const pascalName = trimmed
-      .split("-")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-      .join("");
-
-    if (LucideIcons[pascalName as keyof typeof LucideIcons]) {
-      return LucideIcons[
-        pascalName as keyof typeof LucideIcons
-      ] as React.ComponentType<{ className?: string }>;
-    }
-
-    return null;
-  }, [name]);
-
-  if (IconComponent) {
-    return <IconComponent className={className} />;
-  }
-
-  return <FallbackIcon className={className} />;
-}
-
 export function CategoryFormFields<TFieldValues extends FieldValues>({
   form,
   isPending,
