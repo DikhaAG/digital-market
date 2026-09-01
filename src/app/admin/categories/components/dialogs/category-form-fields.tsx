@@ -9,13 +9,7 @@ import {
 } from "react-hook-form";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
-import {
-  Link2,
-  Folder,
-  Image as ImageIcon,
-  Sparkles,
-  HelpCircle,
-} from "lucide-react";
+import { Link2, Folder, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -27,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { LucideIconPicker } from "@/components/ui/icon-picker";
 import { slugify } from "../../_schemas/category-admin.schema";
 import { DynamicLucideIcon } from "@/components/CategoryIcon";
 
@@ -36,6 +31,7 @@ interface CategoryFormFieldsProps<TFieldValues extends FieldValues> {
   nameLabel?: string;
   namePlaceholder?: string;
 }
+
 export function CategoryFormFields<TFieldValues extends FieldValues>({
   form,
   isPending,
@@ -63,7 +59,7 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
   return (
     <div className="space-y-5">
       {/* Visual Live Preview Header */}
-      <div className="flex items-center gap-3 p-3.5 bg-linear-to-r from-muted/60 via-muted/30 to-transparent rounded-xl border border-border/60">
+      <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-muted/60 via-muted/30 to-transparent rounded-xl border border-border/60">
         <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-background shadow-xs">
           {watchedImage ? (
             <Image
@@ -152,7 +148,7 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Nama Icon Lucide */}
+          {/* Tab 1: Interactive Lucide Icon Picker Popover */}
           <TabsContent value="icon" className="pt-3 space-y-3">
             <FormField
               control={form.control}
@@ -160,27 +156,15 @@ export function CategoryFormFields<TFieldValues extends FieldValues>({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <div className="relative flex items-center">
-                      <Input
-                        placeholder="Contoh: code, palette, terminal, cpu, layers..."
-                        disabled={isPending}
-                        {...field}
-                        value={field.value ?? ""}
-                        className="pr-10"
-                      />
-                      <div className="absolute right-3 flex items-center justify-center text-muted-foreground">
-                        <DynamicLucideIcon
-                          name={field.value}
-                          className="h-4 w-4 text-primary"
-                          fallback={HelpCircle}
-                        />
-                      </div>
-                    </div>
+                    <LucideIconPicker
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      disabled={isPending}
+                    />
                   </FormControl>
                   <FormDescription className="text-[11px]">
-                    Ketik nama icon dari koleksi Lucide React (misal:{" "}
-                    <code>laptop</code>, <code>code-2</code>, <code>store</code>
-                    ).
+                    Pilih icon dari galeri visual atau cari nama icon dari
+                    pustaka Lucide React.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
