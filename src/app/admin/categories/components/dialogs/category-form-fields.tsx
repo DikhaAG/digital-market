@@ -1,7 +1,6 @@
 // src/app/admin/categories/components/dialogs/category-form-fields.tsx
 "use client";
 
-import React, { useMemo } from "react";
 import {
   useWatch,
   type UseFormReturn,
