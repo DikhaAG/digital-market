@@ -2,7 +2,6 @@
 "use client";
 
 import { memo } from "react";
-import { Folder } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
@@ -10,6 +9,7 @@ import { CreateSubCategoryDialog, EditCategoryDialog } from "./dialogs";
 import { SubCategoryCard } from "./sub-category-card";
 import { type ParentCategoryItem } from "../_schemas/category-admin.schema";
 import { useCategoryActions } from "../_hooks/use-category-actions";
+import { DynamicLucideIcon } from "@/components/CategoryIcon";
 
 interface ParentCategoryCardProps {
   parent: ParentCategoryItem;
@@ -26,7 +26,7 @@ export const ParentCategoryCard = memo(function ParentCategoryCard({
       <div className="p-3.5 sm:p-5 bg-muted/30 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div className="flex items-center gap-3 min-w-0">
           <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-            <Folder className="h-5 w-5 sm:h-6 sm:w-6" />
+            <DynamicLucideIcon name={parent.icon} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap min-w-0">

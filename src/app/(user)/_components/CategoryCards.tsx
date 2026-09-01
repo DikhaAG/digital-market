@@ -1,6 +1,7 @@
+//src/app/(user)/_components/CategoryCards.tsx
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { CategoryIcon } from "@/components/CategoryIcon";
+import { DynamicLucideIcon } from "@/components/CategoryIcon";
 
 export async function CategoryCards() {
   // Fetch kategori utama (parentId IS NULL) langsung di server (RSC)
@@ -30,7 +31,7 @@ export async function CategoryCards() {
           >
             {/* 1. Icon Bagian Atas */}
             <div className="text-foreground group-hover:text-primary transition-colors">
-              <CategoryIcon
+              <DynamicLucideIcon
                 name={category.icon}
                 className="h-7 w-7 stroke-[1.5]"
               />
